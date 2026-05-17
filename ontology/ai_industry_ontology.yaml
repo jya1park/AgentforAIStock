@@ -1,0 +1,170 @@
+# AI 산업 온톨로지
+# 계층: domain -> layer -> segment -> companies
+# 각 종목은 yfinance 심볼. 한국주식은 .KS(KOSPI), .KQ(KOSDAQ) suffix.
+# 한 회사가 여러 segment에 속할 수 있음 (cross-tagging 허용).
+
+version: 1
+last_updated: "2026-05-17"
+
+domains:
+  hardware:
+    description: "AI 연산을 가능하게 하는 물리 인프라"
+    layers:
+      semiconductor_compute:
+        description: "GPU/NPU/AI 가속기 - 학습/추론 연산의 핵심"
+        segments:
+          gpu_accelerator:
+            companies:
+              - { ticker: NVDA, name: "NVIDIA", market: US, role: "AI GPU 절대 강자" }
+              - { ticker: AMD,  name: "AMD",    market: US, role: "MI 시리즈 추격" }
+              - { ticker: INTC, name: "Intel",  market: US, role: "Gaudi/CPU" }
+              - { ticker: AVGO, name: "Broadcom", market: US, role: "커스텀 ASIC (구글 TPU)" }
+          fabless_ai_chip:
+            companies:
+              - { ticker: ARM,  name: "ARM Holdings", market: US, role: "IP 라이선스" }
+              - { ticker: MRVL, name: "Marvell", market: US, role: "데이터센터 ASIC" }
+              - { ticker: "078340.KQ", name: "컴투스", market: KR, role: "AI/게임" }
+              - { ticker: "094170.KQ", name: "동원개발", market: KR, role: "" }
+      semiconductor_memory:
+        description: "HBM(고대역폭 메모리)이 AI 학습의 병목"
+        segments:
+          hbm_dram:
+            companies:
+              - { ticker: "005930.KS", name: "삼성전자", market: KR, role: "HBM3E/HBM4" }
+              - { ticker: "000660.KS", name: "SK하이닉스", market: KR, role: "HBM 1위 (엔비디아 공급)" }
+              - { ticker: MU,   name: "Micron",   market: US, role: "HBM3E 양산" }
+      semiconductor_foundry:
+        description: "AI 칩 위탁 생산"
+        segments:
+          leading_edge_foundry:
+            companies:
+              - { ticker: TSM,  name: "TSMC",        market: US, role: "3nm/2nm 독점" }
+              - { ticker: "005930.KS", name: "삼성전자", market: KR, role: "파운드리 2위" }
+              - { ticker: INTC, name: "Intel Foundry", market: US, role: "18A 진입" }
+      semiconductor_equipment:
+        description: "노광/식각/증착 등 반도체 제조 장비"
+        segments:
+          litho_equipment:
+            companies:
+              - { ticker: ASML, name: "ASML", market: US, role: "EUV 독점" }
+          general_equipment:
+            companies:
+              - { ticker: AMAT, name: "Applied Materials", market: US, role: "증착/식각" }
+              - { ticker: LRCX, name: "Lam Research", market: US, role: "식각" }
+              - { ticker: KLAC, name: "KLA",  market: US, role: "검사" }
+              - { ticker: TER,  name: "Teradyne", market: US, role: "테스트" }
+          hbm_packaging_equipment:
+            companies:
+              - { ticker: "042700.KS", name: "한미반도체", market: KR, role: "TC 본더 (HBM)" }
+              - { ticker: "058470.KQ", name: "리노공업", market: KR, role: "테스트 핀" }
+              - { ticker: "240810.KQ", name: "원익IPS",   market: KR, role: "장비" }
+      networking:
+        description: "데이터센터 내부 고속 인터커넥트"
+        segments:
+          switch_optical:
+            companies:
+              - { ticker: ANET, name: "Arista Networks", market: US, role: "AI 데이터센터 스위치" }
+              - { ticker: CIEN, name: "Ciena", market: US, role: "광 트랜시버" }
+              - { ticker: AVGO, name: "Broadcom", market: US, role: "Tomahawk 스위치 ASIC" }
+      power_thermal:
+        description: "AI 데이터센터 전력/냉각 (병목으로 부상)"
+        segments:
+          power_grid_utility:
+            companies:
+              - { ticker: VST,  name: "Vistra",       market: US, role: "원전/가스 전력" }
+              - { ticker: CEG,  name: "Constellation Energy", market: US, role: "원전" }
+              - { ticker: NEE,  name: "NextEra Energy", market: US, role: "재생에너지" }
+              - { ticker: TLN,  name: "Talen Energy", market: US, role: "AWS 전력 계약" }
+          power_equipment:
+            companies:
+              - { ticker: ETN,  name: "Eaton",     market: US, role: "전력 관리" }
+              - { ticker: VRT,  name: "Vertiv",    market: US, role: "냉각/UPS" }
+              - { ticker: GEV,  name: "GE Vernova", market: US, role: "가스터빈" }
+              - { ticker: "267260.KS", name: "HD현대일렉트릭", market: KR, role: "변압기" }
+              - { ticker: "010120.KS", name: "LS ELECTRIC", market: KR, role: "전력기기" }
+      data_center_reit:
+        description: "AI 데이터센터 부동산/콜로케이션"
+        segments:
+          colocation:
+            companies:
+              - { ticker: EQIX, name: "Equinix", market: US, role: "글로벌 1위 콜로" }
+              - { ticker: DLR,  name: "Digital Realty", market: US, role: "" }
+  software:
+    description: "AI 모델/플랫폼/응용 소프트웨어"
+    layers:
+      foundation_model_cloud:
+        description: "하이퍼스케일러 + 자체 모델"
+        segments:
+          hyperscaler:
+            companies:
+              - { ticker: MSFT,  name: "Microsoft", market: US, role: "OpenAI 파트너 + Azure" }
+              - { ticker: GOOGL, name: "Alphabet",  market: US, role: "Gemini + TPU + Cloud" }
+              - { ticker: AMZN,  name: "Amazon",    market: US, role: "AWS Bedrock + Anthropic" }
+              - { ticker: META,  name: "Meta",      market: US, role: "Llama 오픈소스" }
+              - { ticker: ORCL,  name: "Oracle",    market: US, role: "OCI + OpenAI 계약" }
+      enterprise_ai_software:
+        description: "기업용 AI/데이터 플랫폼"
+        segments:
+          data_analytics:
+            companies:
+              - { ticker: PLTR, name: "Palantir",  market: US, role: "AIP" }
+              - { ticker: SNOW, name: "Snowflake", market: US, role: "데이터 클라우드" }
+              - { ticker: DDOG, name: "Datadog",   market: US, role: "옵저버빌리티" }
+          saas_ai:
+            companies:
+              - { ticker: CRM,  name: "Salesforce", market: US, role: "Agentforce" }
+              - { ticker: NOW,  name: "ServiceNow", market: US, role: "Now Assist" }
+              - { ticker: ADBE, name: "Adobe",      market: US, role: "Firefly" }
+      ai_security:
+        segments:
+          cybersecurity:
+            companies:
+              - { ticker: CRWD, name: "CrowdStrike", market: US, role: "" }
+              - { ticker: PANW, name: "Palo Alto Networks", market: US, role: "" }
+              - { ticker: NET,  name: "Cloudflare",  market: US, role: "엣지 AI" }
+      kr_platform_ai:
+        description: "한국 AI 플랫폼/서비스"
+        segments:
+          internet_platform:
+            companies:
+              - { ticker: "035420.KS", name: "NAVER",   market: KR, role: "HyperCLOVA X" }
+              - { ticker: "035720.KS", name: "카카오",  market: KR, role: "Kanana" }
+          telco_cloud:
+            companies:
+              - { ticker: "030200.KS", name: "KT",     market: KR, role: "믿:음" }
+              - { ticker: "017670.KS", name: "SK텔레콤", market: KR, role: "에이닷" }
+  applications:
+    description: "AI를 활용한 응용 산업"
+    layers:
+      autonomous_robotics:
+        segments:
+          ev_autonomous:
+            companies:
+              - { ticker: TSLA, name: "Tesla",   market: US, role: "FSD/Optimus" }
+              - { ticker: MBLY, name: "Mobileye", market: US, role: "ADAS" }
+          robotics:
+            companies:
+              - { ticker: ISRG, name: "Intuitive Surgical", market: US, role: "수술 로봇" }
+              - { ticker: ABB,  name: "ABB", market: US, role: "산업 로봇" }
+              - { ticker: "108860.KQ", name: "셀바스AI", market: KR, role: "음성AI" }
+      ai_healthcare:
+        segments:
+          ai_diagnostics:
+            companies:
+              - { ticker: VEEV, name: "Veeva",   market: US, role: "" }
+              - { ticker: TEM,  name: "Tempus AI", market: US, role: "" }
+  finance_fintech:
+    description: "AI 금융/핀테크"
+    layers:
+      payment_ai:
+        segments:
+          card_network:
+            companies:
+              - { ticker: V,   name: "Visa",       market: US, role: "AI 부정탐지" }
+              - { ticker: MA,  name: "Mastercard", market: US, role: "" }
+      ai_trading_platform:
+        segments:
+          retail_brokerage:
+            companies:
+              - { ticker: HOOD, name: "Robinhood", market: US, role: "Cortex AI" }
+              - { ticker: COIN, name: "Coinbase",  market: US, role: "" }
