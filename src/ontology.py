@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 
 ONTOLOGY_PATH = Path(__file__).resolve().parent.parent / "ontology" / "ai_industry_ontology.yaml"
+ETFS_PATH = Path(__file__).resolve().parent.parent / "data" / "etfs.yaml"
 
 
 @dataclass(frozen=True)
@@ -38,3 +39,19 @@ class Ontology:
                 for s, seg in layer.get("segments", {}).items():
                     for c in seg.get("companies", []):
                         yield d, l, s, c
+
+
+class EtfCatalog:
+    def __init__(self, raw: dict):
+        self.raw = raw
+
+    @classmethod
+    def load(cls, path: Path = ETFS_PATH) -> "EtfCatalog":
+        with open(path) as f:
+            return cls(yaml.safe_load(f))
+
+    def all_tickers(self) -> list[str]:
+        return [e["ticker"] for e in self.entries()]
+
+    def entries(self) -> list[dict]:
+        return self.raw.get("us", []) + self.raw.get("kr", [])

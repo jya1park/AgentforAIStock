@@ -1,0 +1,13 @@
+# AI 시장 흐름 추적용 ETF 카탈로그
+# maps_to: 가장 가까운 ontology layer/domain 텍스트 (1:1 정확 매핑 아님 — 참고용)
+
+us:
+  - { ticker: SOXX, name: "iShares Semiconductor ETF",            theme: "반도체",           maps_to: "hardware.semiconductor_compute" }
+  - { ticker: AIQ,  name: "Global X Artificial Intelligence & Technology", theme: "AI 광의", maps_to: "software" }
+  - { ticker: DTCR, name: "Global X Data Center & Digital Infra", theme: "데이터센터 인프라", maps_to: "hardware.ai_dc_operator" }
+  - { ticker: XLU,  name: "Utilities Select Sector SPDR",         theme: "전력 유틸",         maps_to: "hardware.power_thermal" }
+  - { ticker: QQQ,  name: "Invesco QQQ",                          theme: "나스닥100",         maps_to: "benchmark" }
+
+kr:
+  - { ticker: "396500.KS", name: "TIGER Fn반도체TOP10",  theme: "한국 반도체",      maps_to: "hardware.semiconductor_compute" }
+  - { ticker: "069500.KS", name: "KODEX 200",            theme: "KOSPI200",          maps_to: "benchmark" }

@@ -1,4 +1,4 @@
-from src.ontology import Ontology
+from src.ontology import EtfCatalog, Ontology
 
 
 def test_load():
@@ -30,3 +30,17 @@ def test_cross_tag_samsung():
 def test_tags_returns_empty_for_unknown():
     ont = Ontology.load()
     assert ont.tags("NOT_A_TICKER") == []
+
+
+def test_etf_catalog_load():
+    cat = EtfCatalog.load()
+    tickers = cat.all_tickers()
+    assert len(tickers) == 7
+    assert "SOXX" in tickers
+    assert "069500.KS" in tickers
+
+
+def test_etf_entries_have_required_fields():
+    cat = EtfCatalog.load()
+    for e in cat.entries():
+        assert {"ticker", "name", "theme", "maps_to"} <= e.keys()
