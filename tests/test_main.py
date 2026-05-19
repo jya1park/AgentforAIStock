@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from src import main
-from src.main import _filter_by_mode, _is_kr, _news_section
+from src.main import _filter_by_mode, _is_kr, _news_section, _split_report
 
 
 def test_is_kr_suffixes():
@@ -23,6 +23,20 @@ def test_filter_by_mode_evening_keeps_only_kr():
 def test_filter_by_mode_invalid_raises():
     with pytest.raises(ValueError):
         _filter_by_mode(["NVDA"], "midday")
+
+
+def test_split_report_extracts_both_fences():
+    raw = "preamble\n```long_markdown\n# Daily Report\nbody text\n```\n\n```short_kakao\n핵심 한 줄\n```\ntrailer"
+    long_b, short_b = _split_report(raw)
+    assert long_b == "# Daily Report\nbody text"
+    assert short_b == "핵심 한 줄"
+
+
+def test_split_report_falls_back_when_no_fences():
+    raw = "no fences here, just text"
+    long_b, short_b = _split_report(raw)
+    assert long_b == "no fences here, just text"
+    assert short_b == ""
 
 
 def test_news_section_skips_empty_tickers():
@@ -65,7 +79,7 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     def fake_call_agent(name, user_input, model="gpt-4o-mini"):
         captured["agent_name"] = name
         captured["agent_input"] = user_input
-        return "## Report\nfake report body"
+        return "```long_markdown\n## Report\nfake report body\n```\n```short_kakao\nNVDA AI 강세\n```"
 
     monkeypatch.setattr(main, "fetch_quotes", fake_fetch_quotes)
     monkeypatch.setattr(main, "fetch_headlines", fake_fetch_headlines)
@@ -75,7 +89,9 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     out = main.main("morning", top_n=2, per_ticker_news=1)
 
     assert out.exists()
-    assert "fake report body" in out.read_text(encoding="utf-8")
+    assert out.read_text(encoding="utf-8") == "## Report\nfake report body"
+    kakao = (tmp_path / out.name.replace(".md", "_kakao.txt"))
+    assert kakao.read_text(encoding="utf-8") == "NVDA AI 강세"
     assert captured["agent_name"] == "stock-analyst"
     assert "mode=morning" in captured["agent_input"]
     assert "head-NVDA" in captured["agent_input"]

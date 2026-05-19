@@ -1,6 +1,7 @@
 """Daily AI-stock report. mode=morning (US-close) or evening (KR-close)."""
 
 import argparse
+import re
 from datetime import date
 from pathlib import Path
 
@@ -23,6 +24,16 @@ def _filter_by_mode(tickers: list[str], mode: str) -> list[str]:
     if mode == "evening":
         return [t for t in tickers if _is_kr(t)]
     raise ValueError(f"unknown mode: {mode}")
+
+
+def _split_report(raw: str) -> tuple[str, str]:
+    """Extract bodies inside ```long_markdown ... ``` and ```short_kakao ... ``` fences.
+    Fallback: whole text → long, empty → short."""
+    long_m = re.search(r"```long_markdown\s*\n(.*?)```", raw, re.DOTALL)
+    short_m = re.search(r"```short_kakao\s*\n(.*?)```", raw, re.DOTALL)
+    long_body = long_m.group(1).strip() if long_m else raw.strip()
+    short_body = short_m.group(1).strip() if short_m else ""
+    return long_body, short_body
 
 
 def _news_section(headlines: dict[str, list[dict]]) -> str:
@@ -54,13 +65,18 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
 
     payload = to_markdown(analysis) + "\n" + _news_section(headlines)
     print("calling stock-analyst agent...")
-    report = call_agent("stock-analyst", f"mode={mode}\n\n{payload}")
+    raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}")
+    long_body, short_body = _split_report(raw)
 
     REPORTS_DIR.mkdir(exist_ok=True)
-    out = REPORTS_DIR / f"{date.today().isoformat()}_{mode}.md"
-    out.write_text(report, encoding="utf-8")
-    print(f"saved {out}")
-    return out
+    stem = f"{date.today().isoformat()}_{mode}"
+    out_md = REPORTS_DIR / f"{stem}.md"
+    out_kakao = REPORTS_DIR / f"{stem}_kakao.txt"
+    out_md.write_text(long_body, encoding="utf-8")
+    out_kakao.write_text(short_body, encoding="utf-8")
+    print(f"saved {out_md}")
+    print(f"saved {out_kakao} ({len(short_body)} chars)")
+    return out_md
 
 
 if __name__ == "__main__":

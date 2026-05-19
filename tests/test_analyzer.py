@@ -51,3 +51,13 @@ def test_to_markdown_shows_signals(fake_df):
               "## Segment Rollup", "## ETF Summary"]:
         assert h in md
     assert "vol " in md and "vol20 " in md and "MA above" in md
+
+
+def test_to_markdown_marks_etf_lines_with_prefix(fake_df):
+    md = to_markdown(analyze(fake_df, Ontology.load(), EtfCatalog.load(), top_n=2))
+    etf_section = md.split("## ETF Summary")[1]
+    for line in etf_section.splitlines():
+        if line.startswith("- "):
+            assert "[ETF]" in line, f"ETF line missing prefix: {line}"
+    stocks_section = md.split("## ETF Summary")[0]
+    assert "[ETF]" not in stocks_section

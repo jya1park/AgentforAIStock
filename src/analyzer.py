@@ -84,10 +84,11 @@ def analyze(
     }
 
 
-def _line(r: dict) -> str:
+def _line(r: dict, is_etf: bool = False) -> str:
     label = r.get("segment") or r.get("theme", "")
+    prefix = "[ETF] " if is_etf else ""
     return (
-        f"- {r['ticker']} ({label}): {r['change_pct']:+.2f}% | "
+        f"- {prefix}{r['ticker']} ({label}): {r['change_pct']:+.2f}% | "
         f"vol {r['vol_surge']:.1f}x | vol20 {r['volatility']:.2f}% | "
         f"MA {r['ma_signal']} | close {r['close']}"
     )
@@ -95,9 +96,9 @@ def _line(r: dict) -> str:
 
 def to_markdown(analysis: dict) -> str:
     """Serialize analysis dict to markdown for LLM input."""
-    lines = ["# Daily Market Snapshot", "", "## Top Movers"]
+    lines = ["# Daily Market Snapshot", "", "## Top Movers (stocks)"]
     lines += [_line(r) for r in analysis["top"]]
-    lines += ["", "## Bottom Movers"]
+    lines += ["", "## Bottom Movers (stocks)"]
     lines += [_line(r) for r in analysis["bottom"]]
     lines += ["", "## Segment Rollup (simple average)"]
     for s in analysis["segments"]:
@@ -105,6 +106,6 @@ def to_markdown(analysis: dict) -> str:
             f"- {s['segment']}: {s['avg_change_pct']:+.2f}% | "
             f"vol20 {s['avg_volatility']:.2f}% | n={s['n']}"
         )
-    lines += ["", "## ETF Summary"]
-    lines += [_line(r) for r in analysis["etfs"]]
+    lines += ["", "## ETF Summary (these are ETFs, not individual stocks)"]
+    lines += [_line(r, is_etf=True) for r in analysis["etfs"]]
     return "\n".join(lines)
