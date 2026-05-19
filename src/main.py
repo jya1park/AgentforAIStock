@@ -63,7 +63,13 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     print(f"fetching news for {len(stock_movers)} movers...")
     headlines = fetch_headlines(stock_movers, ontology, per_ticker=per_ticker_news)
 
-    payload = to_markdown(analysis) + "\n" + _news_section(headlines)
+    today_iso = date.today().isoformat()
+    payload = (
+        f"# 시점\n오늘: {today_iso} (이 날짜를 현재로 간주, 학습 cutoff 무시)\n\n"
+        + to_markdown(analysis)
+        + "\n"
+        + _news_section(headlines)
+    )
     print("calling stock-analyst agent (gpt-4o)...")
     raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-4o")
     long_body, short_body = _split_report(raw)
