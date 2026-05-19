@@ -22,6 +22,14 @@ def test_cache_hit_returns_pickled(tmp_path, monkeypatch):
     assert df.loc["NVDA", "close"] == 100.0
 
 
+def test_all_fetches_fail_returns_empty_frame(tmp_path, monkeypatch):
+    monkeypatch.setattr(data_fetcher, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(data_fetcher.yf, "download", lambda **kw: pd.DataFrame())
+    df = fetch_quotes(["BOGUS"], today=date(2026, 5, 19))
+    assert df.empty
+    assert set(df.columns) == {"close", "prev_close", "change_pct", "volume", "ma5", "ma20"}
+
+
 def test_columns_match_spec(tmp_path, monkeypatch):
     monkeypatch.setattr(data_fetcher, "CACHE_DIR", tmp_path)
     today = date(2026, 5, 19)

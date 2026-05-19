@@ -46,6 +46,8 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
             "ma20": close.tail(20).mean(),
         })
 
+    if not rows:
+        return pd.DataFrame(columns=["close", "prev_close", "change_pct", "volume", "ma5", "ma20"])
     df = pd.DataFrame(rows).set_index("ticker")
     df.to_pickle(cache_path)
     return df
