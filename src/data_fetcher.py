@@ -10,7 +10,8 @@ CACHE_DIR = Path("/tmp")
 def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
     """Fetch latest quotes for tickers via yfinance, cache per-day.
 
-    Columns: close, prev_close, change_pct, volume, ma5, ma20
+    Columns: close, prev_close, change_pct, volume, ma5, ma20,
+             vol_avg20 (20d avg volume), volatility20 (20d daily-return stddev %).
     Index: ticker. Tickers with no data are dropped.
     """
     today = today or date.today()
@@ -36,6 +37,7 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
             continue
         if len(close) < 2:
             continue
+        daily_ret = close.pct_change().dropna()
         rows.append({
             "ticker": t,
             "close": close.iloc[-1],
@@ -44,10 +46,13 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
             "volume": volume.iloc[-1] if len(volume) else 0,
             "ma5": close.tail(5).mean(),
             "ma20": close.tail(20).mean(),
+            "vol_avg20": volume.tail(20).mean() if len(volume) else 0,
+            "volatility20": daily_ret.tail(20).std() * 100,
         })
 
+    cols = ["close", "prev_close", "change_pct", "volume", "ma5", "ma20", "vol_avg20", "volatility20"]
     if not rows:
-        return pd.DataFrame(columns=["close", "prev_close", "change_pct", "volume", "ma5", "ma20"])
+        return pd.DataFrame(columns=cols)
     df = pd.DataFrame(rows).set_index("ticker")
     df.to_pickle(cache_path)
     return df
