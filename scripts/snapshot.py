@@ -4,7 +4,11 @@ Run locally (cloud env blocks Yahoo outbound):
     python scripts/snapshot.py
 """
 
+import sys
 from datetime import date
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from src.data_fetcher import fetch_quotes
 from src.ontology import EtfCatalog, Ontology
