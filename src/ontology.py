@@ -20,7 +20,7 @@ class Ontology:
 
     @classmethod
     def load(cls, path: Path = ONTOLOGY_PATH) -> "Ontology":
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return cls(yaml.safe_load(f))
 
     @property
@@ -47,7 +47,7 @@ class EtfCatalog:
 
     @classmethod
     def load(cls, path: Path = ETFS_PATH) -> "EtfCatalog":
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return cls(yaml.safe_load(f))
 
     def all_tickers(self) -> list[str]:
