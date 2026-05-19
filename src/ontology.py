@@ -33,6 +33,12 @@ class Ontology:
     def tags(self, ticker: str) -> list[Tag]:
         return [Tag(d, l, s) for d, l, s, c in self._iter_companies() if c["ticker"] == ticker]
 
+    def name_for(self, ticker: str) -> str | None:
+        for _, _, _, c in self._iter_companies():
+            if c["ticker"] == ticker:
+                return c.get("name")
+        return None
+
     def _iter_companies(self):
         for d, dom in self.raw["domains"].items():
             for l, layer in dom.get("layers", {}).items():
