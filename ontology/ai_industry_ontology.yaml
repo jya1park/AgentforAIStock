@@ -3,8 +3,8 @@
 # 각 종목은 yfinance 심볼. 한국주식은 .KS(KOSPI), .KQ(KOSDAQ) suffix.
 # 한 회사가 여러 segment에 속할 수 있음 (cross-tagging 허용).
 
-version: 1
-last_updated: "2026-05-17"
+version: 4
+last_updated: "2026-05-18"
 
 domains:
   hardware:
@@ -23,8 +23,6 @@ domains:
             companies:
               - { ticker: ARM,  name: "ARM Holdings", market: US, role: "IP 라이선스" }
               - { ticker: MRVL, name: "Marvell", market: US, role: "데이터센터 ASIC" }
-              - { ticker: "078340.KQ", name: "컴투스", market: KR, role: "AI/게임" }
-              - { ticker: "094170.KQ", name: "동원개발", market: KR, role: "" }
       semiconductor_memory:
         description: "HBM(고대역폭 메모리)이 AI 학습의 병목"
         segments:
@@ -75,20 +73,65 @@ domains:
               - { ticker: CEG,  name: "Constellation Energy", market: US, role: "원전" }
               - { ticker: NEE,  name: "NextEra Energy", market: US, role: "재생에너지" }
               - { ticker: TLN,  name: "Talen Energy", market: US, role: "AWS 전력 계약" }
+              - { ticker: SO,   name: "Southern Company", market: US, role: "원전/가스 발전, AI DC 인근 인프라" }
+              - { ticker: DUK,  name: "Duke Energy", market: US, role: "남동부 데이터센터 벨트 전력" }
+              - { ticker: PPL,  name: "PPL Corporation", market: US, role: "펜실베이니아 전력, Blackstone $25B AI hub JV 수혜" }
+              - { ticker: "015760.KS", name: "한국전력", market: KR, role: "한국 전력 인프라" }
+              - { ticker: "034020.KS", name: "두산에너빌리티", market: KR, role: "SMR/원전 메인 컨트랙터" }
           power_equipment:
             companies:
               - { ticker: ETN,  name: "Eaton",     market: US, role: "전력 관리" }
               - { ticker: VRT,  name: "Vertiv",    market: US, role: "냉각/UPS" }
               - { ticker: GEV,  name: "GE Vernova", market: US, role: "가스터빈" }
+              - { ticker: BE,   name: "Bloom Energy", market: US, role: "AI DC 온사이트 연료전지, Brookfield $5B 파트너십" }
               - { ticker: "267260.KS", name: "HD현대일렉트릭", market: KR, role: "변압기" }
               - { ticker: "010120.KS", name: "LS ELECTRIC", market: KR, role: "전력기기" }
+      ai_dc_operator:
+        description: "AI 데이터센터를 직접 소유·운영하는 사업자"
+        thesis: "2026 합산 capex ~$700B, 75%가 AI 관련 — 전력/HBM/광부품 수요의 1차 추진체"
+        segments:
+          hyperscaler_dc:
+            description: "자체 DC 운영 빅테크 (software.foundation_model_cloud.hyperscaler 와 cross-tag)"
+            companies:
+              - { ticker: MSFT,  name: "Microsoft", market: US, role: "Azure DC, 2026 capex $190B" }
+              - { ticker: GOOGL, name: "Alphabet",  market: US, role: "Google Cloud DC + TPU, 2026 capex $190B" }
+              - { ticker: AMZN,  name: "Amazon",    market: US, role: "AWS DC, 2026 capex $200B" }
+              - { ticker: META,  name: "Meta",      market: US, role: "자체 LLM 학습 DC, 2026 capex $125–145B" }
+              - { ticker: ORCL,  name: "Oracle",    market: US, role: "OCI + OpenAI Stargate, 2026 capex $50B (+136% YoY)" }
+          ai_native_cloud:
+            description: "GPU-as-a-Service 전문 neocloud — NVIDIA 직접 파트너"
+            companies:
+              - { ticker: CRWV, name: "CoreWeave",    market: US, role: "2025-03 IPO, 2026 매출 $12–13B 가이던스, NVIDIA 백킹" }
+              - { ticker: NBIS, name: "Nebius Group", market: US, role: "구 Yandex 분할, 2026 annualized $7–9B 목표" }
+          crypto_to_ai_dc:
+            description: "BTC 마이너 → AI HPC 호스팅으로 전환"
+            companies:
+              - { ticker: IREN, name: "Iris Energy",     market: US, role: "MSFT $9.7B 5년 GPU 클라우드 계약, 85% EBITDA margin" }
+              - { ticker: APLD, name: "Applied Digital", market: US, role: "CoreWeave 추가 150MW 리스 (North Dakota)" }
+              - { ticker: CIFR, name: "Cipher Mining",   market: US, role: "Google과 AI DC 협력" }
       data_center_reit:
         description: "AI 데이터센터 부동산/콜로케이션"
         segments:
           colocation:
             companies:
               - { ticker: EQIX, name: "Equinix", market: US, role: "글로벌 1위 콜로" }
-              - { ticker: DLR,  name: "Digital Realty", market: US, role: "" }
+              - { ticker: DLR,  name: "Digital Realty", market: US, role: "글로벌 데이터센터 REIT" }
+              - { ticker: IRM,  name: "Iron Mountain", market: US, role: "데이터센터 전환 가속" }
+              - { ticker: AMT,  name: "American Tower", market: US, role: "통신 인프라 + 엣지 DC" }
+      data_center_construction:
+        description: "AI 하이퍼스케일 데이터센터 건설·MEP·EPC"
+        segments:
+          epc_construction:
+            companies:
+              - { ticker: PWR,  name: "Quanta Services", market: US, role: "전력 인프라 EPC, AI DC 송전 수혜" }
+              - { ticker: EME,  name: "EMCOR Group",     market: US, role: "MEP 시공 (전기/공조)" }
+              - { ticker: FIX,  name: "Comfort Systems", market: US, role: "데이터센터 HVAC 시공" }
+              - { ticker: J,    name: "Jacobs Solutions", market: US, role: "엔지니어링·디자인" }
+              - { ticker: FLR,  name: "Fluor",           market: US, role: "대형 EPC" }
+              - { ticker: PRIM, name: "Primoris Services", market: US, role: "전력/통신 인프라" }
+              - { ticker: "028260.KS", name: "삼성물산",   market: KR, role: "삼성 평택 캠퍼스 등 시공" }
+              - { ticker: "000720.KS", name: "현대건설",   market: KR, role: "데이터센터·원전 EPC" }
+              - { ticker: "006360.KS", name: "GS건설",     market: KR, role: "데이터센터 시공 경험" }
   software:
     description: "AI 모델/플랫폼/응용 소프트웨어"
     layers:
@@ -119,8 +162,8 @@ domains:
         segments:
           cybersecurity:
             companies:
-              - { ticker: CRWD, name: "CrowdStrike", market: US, role: "" }
-              - { ticker: PANW, name: "Palo Alto Networks", market: US, role: "" }
+              - { ticker: CRWD, name: "CrowdStrike", market: US, role: "엔드포인트 AI 보안" }
+              - { ticker: PANW, name: "Palo Alto Networks", market: US, role: "AI 보안 플랫폼" }
               - { ticker: NET,  name: "Cloudflare",  market: US, role: "엣지 AI" }
       kr_platform_ai:
         description: "한국 AI 플랫폼/서비스"
@@ -151,8 +194,8 @@ domains:
         segments:
           ai_diagnostics:
             companies:
-              - { ticker: VEEV, name: "Veeva",   market: US, role: "" }
-              - { ticker: TEM,  name: "Tempus AI", market: US, role: "" }
+              - { ticker: VEEV, name: "Veeva",   market: US, role: "라이프사이언스 SaaS" }
+              - { ticker: TEM,  name: "Tempus AI", market: US, role: "AI 진단/유전체" }
   finance_fintech:
     description: "AI 금융/핀테크"
     layers:
@@ -161,10 +204,74 @@ domains:
           card_network:
             companies:
               - { ticker: V,   name: "Visa",       market: US, role: "AI 부정탐지" }
-              - { ticker: MA,  name: "Mastercard", market: US, role: "" }
+              - { ticker: MA,  name: "Mastercard", market: US, role: "AI 리스크 관리" }
       ai_trading_platform:
         segments:
           retail_brokerage:
             companies:
               - { ticker: HOOD, name: "Robinhood", market: US, role: "Cortex AI" }
-              - { ticker: COIN, name: "Coinbase",  market: US, role: "" }
+              - { ticker: COIN, name: "Coinbase",  market: US, role: "온체인 데이터" }
+      asset_management_ai:
+        description: "AI 테마 ETF 운용사 + AI 도입 자산운용/투자은행"
+        segments:
+          etf_issuer:
+            companies:
+              - { ticker: BLK,  name: "BlackRock",         market: US, role: "iShares (IRBO 발행), Aladdin AI" }
+              - { ticker: IVZ,  name: "Invesco",           market: US, role: "QQQ 운용" }
+              - { ticker: BEN,  name: "Franklin Resources", market: US, role: "" }
+              - { ticker: TROW, name: "T. Rowe Price",     market: US, role: "" }
+          diversified_finance:
+            companies:
+              - { ticker: SCHW, name: "Charles Schwab",  market: US, role: "AI 도입 리테일 브로커리지" }
+              - { ticker: MS,   name: "Morgan Stanley",  market: US, role: "OpenAI 기반 GPT 어드바이저" }
+              - { ticker: GS,   name: "Goldman Sachs",   market: US, role: "AI 트레이딩/리서치" }
+              - { ticker: JPM,  name: "JPMorgan",        market: US, role: "LLM Suite 자체 구축" }
+          ai_infra_alts:
+            companies:
+              - { ticker: BX,   name: "Blackstone",                  market: US, role: "$1.3T AUM, QTS 보유, BREIT DC $5.8B, BXDC REIT IPO, 펜실베이니아 $25B AI hub" }
+              - { ticker: APO,  name: "Apollo Global Management",    market: US, role: "$938B AUM, AI 인프라 적극 투자" }
+              - { ticker: KKR,  name: "KKR",                         market: US, role: "$744B AUM, Global Technical Realty 추가 $1.5B (유럽 DC)" }
+              - { ticker: ARES, name: "Ares Management",             market: US, role: "$623B AUM, Meade Pipeline $1.1B (AI 가스 인프라)" }
+              - { ticker: CG,   name: "Carlyle Group",               market: US, role: "2026 디지털 인프라 딜 파이프라인" }
+              - { ticker: BAM,  name: "Brookfield Asset Management", market: US, role: "BAIIF $10B 펀드 (NVIDIA/KIA), $100B AI 인프라 프로그램" }
+              - { ticker: BIP,  name: "Brookfield Infrastructure",   market: US, role: "DC 인프라 직접 보유" }
+              - { ticker: DBRG, name: "DigitalBridge",               market: US, role: "디지털 인프라 전문 PE, DBP III $11.7B 클로즈" }
+              - { ticker: OWL,  name: "Blue Owl Capital",            market: US, role: "Crusoe + Primary Digital, Abilene 1.2GW $15B JV" }
+  emerging_compute:
+    description: "기존 GPU·HBM 중심 AI 컴퓨팅을 대체할 가능성이 있는 차세대 기술군"
+    thesis: "이 도메인 강세 시 hardware.semiconductor_compute / semiconductor_memory와의 역상관 점검 (자금 이동 시그널)"
+    layers:
+      quantum_computing:
+        description: "양자 컴퓨팅 - 장기 디스럽터"
+        segments:
+          pure_play_quantum:
+            companies:
+              - { ticker: IONQ, name: "IonQ",                  market: US, role: "트랩드 이온 양자컴퓨터" }
+              - { ticker: RGTI, name: "Rigetti",               market: US, role: "초전도 양자 칩" }
+              - { ticker: QBTS, name: "D-Wave",                market: US, role: "양자 어닐링" }
+              - { ticker: QUBT, name: "Quantum Computing Inc", market: US, role: "광학 기반 양자" }
+          incumbent_quantum:
+            companies:
+              - { ticker: IBM,  name: "IBM",                   market: US, role: "IBM Quantum Network, 1000+ qubit 로드맵" }
+              - { ticker: HON,  name: "Honeywell",             market: US, role: "Quantinuum 모회사" }
+      photonic_semiconductor:
+        description: "광반도체/CPO - AI DC 인터커넥트의 차세대 폼"
+        segments:
+          optical_transceiver:
+            companies:
+              - { ticker: COHR, name: "Coherent",              market: US, role: "광 트랜시버, 800G/1.6T" }
+              - { ticker: LITE, name: "Lumentum",              market: US, role: "데이터센터 광부품" }
+              - { ticker: AAOI, name: "Applied Optoelectronics", market: US, role: "데이터센터 옵틱스" }
+              - { ticker: POET, name: "POET Technologies",     market: US, role: "광 인터포저" }
+              - { ticker: "218410.KQ", name: "RFHIC",          market: KR, role: "RF/광 솔루션" }
+              - { ticker: "082210.KQ", name: "옵트론텍",        market: KR, role: "광학 모듈" }
+      edge_ai_compute:
+        description: "엣지 추론 SoC - 클라우드 GPU 의존도를 낮추는 방향"
+        segments:
+          edge_inference_soc:
+            companies:
+              - { ticker: AMBA, name: "Ambarella",             market: US, role: "엣지 비전 SoC" }
+              - { ticker: LSCC, name: "Lattice Semi",          market: US, role: "저전력 FPGA, 엣지 추론" }
+              - { ticker: SYNA, name: "Synaptics",             market: US, role: "엣지 IoT" }
+              - { ticker: QCOM, name: "Qualcomm",              market: US, role: "온디바이스 AI (스냅드래곤)" }
+              - { ticker: "054450.KQ", name: "텔레칩스",        market: KR, role: "차량용 SoC, 엣지 추론" }
