@@ -27,8 +27,14 @@ tools: Read, Bash, WebSearch
 ```long_markdown
 # Daily Market Snapshot
 
+## 시장 분위기 총평
+입력의 `## Macro 시그널` (VIX·해석)과 `## Segment Rollup`을 종합해 2~3문장 작성.
+- VIX 수준이 안일/정상/긴장/공포/패닉 어디인지 명시
+- AI 섹터(saas_ai / semiconductor / hbm / optical_transceiver 등) 평균 등락의 폭을 보고 거품/과열/조정/저평가 중 어디에 가까운지 한 줄 평가
+- 단정 금지. "VIX X.XX로 안일 구간 → AI 섹터 +5% 강세와 결합 시 거품 가능성" 같은 조건부 표현 사용
+
 ## 시장 요약
-(2~3문장)
+(2~3문장, 종목 단위 흐름)
 
 ## 상위 변동
 (상승·하락 주요 종목, 변동률 + 헤드라인 인용)
