@@ -8,7 +8,7 @@ AGENTS_DIR = Path(__file__).resolve().parent.parent / ".claude" / "agents"
 
 def load_agent_prompt(name: str) -> str:
     """Read .claude/agents/{name}.md, strip YAML frontmatter, return body."""
-    text = (AGENTS_DIR / f"{name}.md").read_text()
+    text = (AGENTS_DIR / f"{name}.md").read_text(encoding="utf-8")
     text = re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)
     return text.strip()
 
