@@ -97,8 +97,15 @@ def search_news_finnhub(ticker: str, count: int = 5) -> list[dict]:
     return out
 
 
+NEWSAPI_DOMAINS = (
+    "reuters.com,bloomberg.com,ft.com,wsj.com,cnbc.com,"
+    "marketwatch.com,barrons.com,seekingalpha.com"
+)
+
+
 def search_news_newsapi(query: str, count: int = 5) -> list[dict]:
-    """NewsAPI.org /everything (last 7 days, English). Empty if no key or on failure."""
+    """NewsAPI.org /everything restricted to tier-1 financial outlets, sorted by relevance.
+    Empty if no key or on failure."""
     api_key = os.environ.get("NEWSAPI_KEY", "")
     if not api_key:
         return []
@@ -106,7 +113,8 @@ def search_news_newsapi(query: str, count: int = 5) -> list[dict]:
     params = {
         "q": query,
         "language": "en",
-        "sortBy": "publishedAt",
+        "sortBy": "relevancy",
+        "domains": NEWSAPI_DOMAINS,
         "from": (today - timedelta(days=7)).isoformat(),
         "to": today.isoformat(),
         "pageSize": count,
