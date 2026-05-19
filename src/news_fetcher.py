@@ -1,4 +1,4 @@
-"""News fetchers: Naver (KR tickers) + yfinance.news + Finnhub (US tickers)."""
+"""News fetchers: Naver (KR tickers) + yfinance.news + NewsAPI (US tickers)."""
 
 import os
 import re
@@ -11,8 +11,11 @@ from src import config  # noqa: F401 — triggers .env autoload
 from src.ontology import Ontology
 
 NAVER_API_URL = "https://openapi.naver.com/v1/search/news.json"
-FINNHUB_API_URL = "https://finnhub.io/api/v1/company-news"
 NEWSAPI_URL = "https://newsapi.org/v2/everything"
+NEWSAPI_DOMAINS = (
+    "reuters.com,bloomberg.com,ft.com,wsj.com,cnbc.com,"
+    "marketwatch.com,barrons.com,seekingalpha.com"
+)
 
 
 def _clean(text: str) -> str:
@@ -63,44 +66,6 @@ def search_news_yahoo(ticker: str, count: int = 5) -> list[dict]:
             "publisher": (content.get("provider") or {}).get("displayName") or content.get("publisher", ""),
         })
     return out
-
-
-def search_news_finnhub(ticker: str, count: int = 5) -> list[dict]:
-    """Finnhub company news (last 7 days). Empty list if no API key or on failure."""
-    api_key = os.environ.get("FINNHUB_API_KEY", "")
-    if not api_key:
-        return []
-    today = datetime.now(timezone.utc).date()
-    params = {
-        "symbol": ticker,
-        "from": (today - timedelta(days=7)).isoformat(),
-        "to": today.isoformat(),
-        "token": api_key,
-    }
-    try:
-        resp = requests.get(FINNHUB_API_URL, params=params, timeout=10)
-        resp.raise_for_status()
-    except requests.RequestException:
-        return []
-    out = []
-    for it in resp.json()[:count]:
-        headline = it.get("headline", "")
-        if not headline:
-            continue
-        ts = it.get("datetime", 0)
-        out.append({
-            "title": headline,
-            "link": it.get("url", ""),
-            "pubDate": datetime.fromtimestamp(ts, tz=timezone.utc).isoformat() if ts else "",
-            "publisher": it.get("source", "Finnhub"),
-        })
-    return out
-
-
-NEWSAPI_DOMAINS = (
-    "reuters.com,bloomberg.com,ft.com,wsj.com,cnbc.com,"
-    "marketwatch.com,barrons.com,seekingalpha.com"
-)
 
 
 def search_news_newsapi(query: str, count: int = 5) -> list[dict]:
@@ -158,7 +123,7 @@ def _is_kr(ticker: str) -> bool:
 
 
 def fetch_headlines(tickers: list[str], ontology: Ontology, per_ticker: int = 3) -> dict[str, list[dict]]:
-    """Route per ticker: KR (.KS/.KQ) → Naver; US → Yahoo + Finnhub + NewsAPI (deduped)."""
+    """Route per ticker: KR (.KS/.KQ) → Naver; US → Yahoo + NewsAPI (deduped)."""
     out = {}
     for t in tickers:
         if _is_kr(t):
@@ -168,7 +133,6 @@ def fetch_headlines(tickers: list[str], ontology: Ontology, per_ticker: int = 3)
             name = ontology.name_for(t) or t
             combined = (
                 search_news_yahoo(t, count=per_ticker)
-                + search_news_finnhub(t, count=per_ticker)
                 + search_news_newsapi(name, count=per_ticker)
             )
             out[t] = _dedupe(combined)[:per_ticker]

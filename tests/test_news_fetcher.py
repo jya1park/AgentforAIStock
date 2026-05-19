@@ -9,7 +9,6 @@ from src.news_fetcher import (
     _dedupe,
     fetch_headlines,
     search_news,
-    search_news_finnhub,
     search_news_newsapi,
     search_news_yahoo,
 )
@@ -83,26 +82,6 @@ def test_search_news_yahoo_returns_empty_on_exception(monkeypatch):
     assert search_news_yahoo("NVDA") == []
 
 
-def test_search_news_finnhub_returns_empty_without_key(monkeypatch):
-    monkeypatch.delenv("FINNHUB_API_KEY", raising=False)
-    assert search_news_finnhub("NVDA") == []
-
-
-def test_search_news_finnhub_parses_response(monkeypatch):
-    monkeypatch.setenv("FINNHUB_API_KEY", "k")
-    fake = MagicMock()
-    fake.raise_for_status.return_value = None
-    fake.json.return_value = [
-        {"headline": "Nvidia earnings", "url": "https://r/1", "datetime": 1700000000, "source": "Reuters"},
-        {"headline": "AI surge", "url": "https://b/2", "datetime": 1700000100, "source": "Bloomberg"},
-    ]
-    monkeypatch.setattr(requests, "get", lambda *a, **kw: fake)
-    r = search_news_finnhub("NVDA", count=5)
-    assert r[0]["title"] == "Nvidia earnings"
-    assert r[0]["publisher"] == "Reuters"
-    assert r[1]["publisher"] == "Bloomberg"
-
-
 def test_dedupe_drops_same_url_and_same_title():
     items = [
         {"title": "A", "link": "u1"},
@@ -135,21 +114,18 @@ def test_search_news_newsapi_parses_response(monkeypatch):
     assert r[1]["publisher"] == "The Wall Street Journal"
 
 
-def test_fetch_headlines_us_combines_all_three_sources(monkeypatch):
+def test_fetch_headlines_us_combines_yahoo_and_newsapi(monkeypatch):
     monkeypatch.setattr(news_fetcher, "search_news_yahoo",
                         lambda t, count: [{"title": "yahoo-" + t, "link": "y/" + t, "pubDate": "", "publisher": "Yahoo"}])
-    monkeypatch.setattr(news_fetcher, "search_news_finnhub",
-                        lambda t, count: [{"title": "finn-" + t, "link": "f/" + t, "pubDate": "", "publisher": "Reuters"}])
     monkeypatch.setattr(news_fetcher, "search_news_newsapi",
                         lambda q, count: [{"title": "newsapi-" + q, "link": "n/" + q, "pubDate": "", "publisher": "FT"}])
     r = fetch_headlines(["NVDA"], Ontology.load(), per_ticker=5)
     titles = [it["title"] for it in r["NVDA"]]
     assert "yahoo-NVDA" in titles
-    assert "finn-NVDA" in titles
     assert "newsapi-NVIDIA" in titles  # NewsAPI called with company name, not ticker
 
 
-def test_fetch_headlines_routes_kr_to_naver_us_to_yahoo(monkeypatch):
+def test_fetch_headlines_routes_kr_to_naver_us_to_yahoo_newsapi(monkeypatch):
     captured = []
 
     def fake_naver(query, count):
@@ -160,23 +136,17 @@ def test_fetch_headlines_routes_kr_to_naver_us_to_yahoo(monkeypatch):
         captured.append(("yahoo", ticker))
         return []
 
-    def fake_finnhub(ticker, count):
-        captured.append(("finnhub", ticker))
-        return []
-
     def fake_newsapi(query, count):
         captured.append(("newsapi", query))
         return []
 
     monkeypatch.setattr(news_fetcher, "search_news", fake_naver)
     monkeypatch.setattr(news_fetcher, "search_news_yahoo", fake_yahoo)
-    monkeypatch.setattr(news_fetcher, "search_news_finnhub", fake_finnhub)
     monkeypatch.setattr(news_fetcher, "search_news_newsapi", fake_newsapi)
 
     fetch_headlines(["NVDA", "005930.KS", "AAOI", "042700.KS"], Ontology.load(), per_ticker=1)
 
     assert ("yahoo", "NVDA") in captured
-    assert ("finnhub", "NVDA") in captured
     assert ("newsapi", "NVIDIA") in captured
     assert ("yahoo", "AAOI") in captured
     assert ("newsapi", "Applied Optoelectronics") in captured
