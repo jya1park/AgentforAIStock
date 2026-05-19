@@ -23,7 +23,7 @@ def search_news(query: str, count: int = 5) -> list[dict]:
         "X-Naver-Client-Id": os.environ.get("NAVER_CLIENT_ID", ""),
         "X-Naver-Client-Secret": os.environ.get("NAVER_CLIENT_SECRET", ""),
     }
-    params = {"query": query, "display": count, "sort": "date"}
+    params = {"query": query, "display": count, "sort": "sim"}
     try:
         resp = requests.get(API_URL, headers=headers, params=params, timeout=10)
         resp.raise_for_status()

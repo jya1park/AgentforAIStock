@@ -34,7 +34,7 @@ def test_search_news_sends_auth_headers(monkeypatch):
 
     assert captured["headers"]["X-Naver-Client-Id"] == "id123"
     assert captured["headers"]["X-Naver-Client-Secret"] == "secret456"
-    assert captured["params"] == {"query": "NVIDIA", "display": 5, "sort": "date"}
+    assert captured["params"] == {"query": "NVIDIA", "display": 5, "sort": "sim"}
     assert result == [{"title": "NVDA", "link": "u", "pubDate": "t"}]
 
 
