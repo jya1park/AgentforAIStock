@@ -53,10 +53,20 @@ def test_fetch_vix_returns_empty_on_failure(monkeypatch, tmp_path):
 
 
 def test_macro_block_renders_or_skips():
-    out = macro_block({"vix": 14.5, "vix_7d_change_pct": -2.1, "interpretation": "정상"})
+    out = macro_block({"vix": 14.5, "vix_7d_change_pct": -2.1, "interpretation": "정상 (13-18)"})
     assert "VIX: 14.50" in out
-    assert "정상" in out
+    assert "정상 (13-18)" in out
     assert "VIX 7일 변동: -2.10%" in out
+    assert "임계 가이드" in out
+    assert "안일 <13" in out
 
     empty = macro_block({})
     assert "데이터 없음" in empty
+
+
+def test_interpret_includes_range_string():
+    assert "<13" in _interpret(10)
+    assert "13-18" in _interpret(15)
+    assert "18-25" in _interpret(22)
+    assert "25-35" in _interpret(30)
+    assert "≥35" in _interpret(40)

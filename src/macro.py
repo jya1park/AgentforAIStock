@@ -11,14 +11,14 @@ CACHE_DIR = Path("/tmp")
 
 def _interpret(vix: float) -> str:
     if vix < 13:
-        return "안일 (very low fear, complacency)"
+        return "안일 (<13)"
     if vix < 18:
-        return "정상 (normal)"
+        return "정상 (13-18)"
     if vix < 25:
-        return "긴장 (elevated)"
+        return "긴장 (18-25)"
     if vix < 35:
-        return "공포 (high fear)"
-    return "패닉 (extreme fear)"
+        return "공포 (25-35)"
+    return "패닉 (≥35)"
 
 
 def fetch_vix(today: date | None = None) -> dict:
@@ -51,4 +51,5 @@ def macro_block(vix_data: dict) -> str:
         "## Macro 시그널 (시장 분위기)\n"
         f"- VIX: {vix_data['vix']:.2f} → {vix_data['interpretation']}\n"
         f"- VIX 7일 변동: {vix_data['vix_7d_change_pct']:+.2f}%\n"
+        "- 임계 가이드: 안일 <13 / 정상 13-18 / 긴장 18-25 / 공포 25-35 / 패닉 ≥35\n"
     )
