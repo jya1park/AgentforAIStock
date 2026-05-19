@@ -10,6 +10,7 @@ from src.news_fetcher import (
     fetch_headlines,
     search_news,
     search_news_finnhub,
+    search_news_newsapi,
     search_news_yahoo,
 )
 from src.ontology import Ontology
@@ -113,15 +114,39 @@ def test_dedupe_drops_same_url_and_same_title():
     assert [it["title"] for it in out] == ["A", "C"]
 
 
-def test_fetch_headlines_us_combines_yahoo_and_finnhub(monkeypatch):
+def test_search_news_newsapi_returns_empty_without_key(monkeypatch):
+    monkeypatch.delenv("NEWSAPI_KEY", raising=False)
+    assert search_news_newsapi("NVIDIA") == []
+
+
+def test_search_news_newsapi_parses_response(monkeypatch):
+    monkeypatch.setenv("NEWSAPI_KEY", "k")
+    fake = MagicMock()
+    fake.raise_for_status.return_value = None
+    fake.json.return_value = {"articles": [
+        {"title": "FT: Nvidia earnings preview", "url": "https://ft/1",
+         "publishedAt": "2026-05-19T10:00:00Z", "source": {"name": "Financial Times"}},
+        {"title": "WSJ: AI capex check", "url": "https://wsj/2",
+         "publishedAt": "2026-05-19T09:00:00Z", "source": {"name": "The Wall Street Journal"}},
+    ]}
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: fake)
+    r = search_news_newsapi("NVIDIA", count=5)
+    assert r[0]["publisher"] == "Financial Times"
+    assert r[1]["publisher"] == "The Wall Street Journal"
+
+
+def test_fetch_headlines_us_combines_all_three_sources(monkeypatch):
     monkeypatch.setattr(news_fetcher, "search_news_yahoo",
                         lambda t, count: [{"title": "yahoo-" + t, "link": "y/" + t, "pubDate": "", "publisher": "Yahoo"}])
     monkeypatch.setattr(news_fetcher, "search_news_finnhub",
                         lambda t, count: [{"title": "finn-" + t, "link": "f/" + t, "pubDate": "", "publisher": "Reuters"}])
+    monkeypatch.setattr(news_fetcher, "search_news_newsapi",
+                        lambda q, count: [{"title": "newsapi-" + q, "link": "n/" + q, "pubDate": "", "publisher": "FT"}])
     r = fetch_headlines(["NVDA"], Ontology.load(), per_ticker=5)
     titles = [it["title"] for it in r["NVDA"]]
     assert "yahoo-NVDA" in titles
     assert "finn-NVDA" in titles
+    assert "newsapi-NVIDIA" in titles  # NewsAPI called with company name, not ticker
 
 
 def test_fetch_headlines_routes_kr_to_naver_us_to_yahoo(monkeypatch):
@@ -139,14 +164,21 @@ def test_fetch_headlines_routes_kr_to_naver_us_to_yahoo(monkeypatch):
         captured.append(("finnhub", ticker))
         return []
 
+    def fake_newsapi(query, count):
+        captured.append(("newsapi", query))
+        return []
+
     monkeypatch.setattr(news_fetcher, "search_news", fake_naver)
     monkeypatch.setattr(news_fetcher, "search_news_yahoo", fake_yahoo)
     monkeypatch.setattr(news_fetcher, "search_news_finnhub", fake_finnhub)
+    monkeypatch.setattr(news_fetcher, "search_news_newsapi", fake_newsapi)
 
     fetch_headlines(["NVDA", "005930.KS", "AAOI", "042700.KS"], Ontology.load(), per_ticker=1)
 
     assert ("yahoo", "NVDA") in captured
     assert ("finnhub", "NVDA") in captured
+    assert ("newsapi", "NVIDIA") in captured
     assert ("yahoo", "AAOI") in captured
+    assert ("newsapi", "Applied Optoelectronics") in captured
     assert ("naver", "삼성전자") in captured
     assert ("naver", "한미반도체") in captured

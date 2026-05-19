@@ -12,6 +12,7 @@ from src.ontology import Ontology
 
 NAVER_API_URL = "https://openapi.naver.com/v1/search/news.json"
 FINNHUB_API_URL = "https://finnhub.io/api/v1/company-news"
+NEWSAPI_URL = "https://newsapi.org/v2/everything"
 
 
 def _clean(text: str) -> str:
@@ -96,6 +97,40 @@ def search_news_finnhub(ticker: str, count: int = 5) -> list[dict]:
     return out
 
 
+def search_news_newsapi(query: str, count: int = 5) -> list[dict]:
+    """NewsAPI.org /everything (last 7 days, English). Empty if no key or on failure."""
+    api_key = os.environ.get("NEWSAPI_KEY", "")
+    if not api_key:
+        return []
+    today = datetime.now(timezone.utc).date()
+    params = {
+        "q": query,
+        "language": "en",
+        "sortBy": "publishedAt",
+        "from": (today - timedelta(days=7)).isoformat(),
+        "to": today.isoformat(),
+        "pageSize": count,
+        "apiKey": api_key,
+    }
+    try:
+        resp = requests.get(NEWSAPI_URL, params=params, timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return []
+    out = []
+    for it in resp.json().get("articles", [])[:count]:
+        title = it.get("title", "")
+        if not title:
+            continue
+        out.append({
+            "title": title,
+            "link": it.get("url", ""),
+            "pubDate": it.get("publishedAt", ""),
+            "publisher": (it.get("source") or {}).get("name", "NewsAPI"),
+        })
+    return out
+
+
 def _dedupe(items: list[dict]) -> list[dict]:
     seen_titles, seen_urls, out = set(), set(), []
     for it in items:
@@ -115,13 +150,18 @@ def _is_kr(ticker: str) -> bool:
 
 
 def fetch_headlines(tickers: list[str], ontology: Ontology, per_ticker: int = 3) -> dict[str, list[dict]]:
-    """Route per ticker: KR (.KS/.KQ) → Naver; US → Yahoo + Finnhub (deduped)."""
+    """Route per ticker: KR (.KS/.KQ) → Naver; US → Yahoo + Finnhub + NewsAPI (deduped)."""
     out = {}
     for t in tickers:
         if _is_kr(t):
             query = ontology.name_for(t) or t
             out[t] = search_news(query, count=per_ticker)
         else:
-            combined = search_news_yahoo(t, count=per_ticker) + search_news_finnhub(t, count=per_ticker)
+            name = ontology.name_for(t) or t
+            combined = (
+                search_news_yahoo(t, count=per_ticker)
+                + search_news_finnhub(t, count=per_ticker)
+                + search_news_newsapi(name, count=per_ticker)
+            )
             out[t] = _dedupe(combined)[:per_ticker]
     return out
