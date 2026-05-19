@@ -64,8 +64,8 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     headlines = fetch_headlines(stock_movers, ontology, per_ticker=per_ticker_news)
 
     payload = to_markdown(analysis) + "\n" + _news_section(headlines)
-    print("calling stock-analyst agent...")
-    raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}")
+    print("calling stock-analyst agent (gpt-4o)...")
+    raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-4o")
     long_body, short_body = _split_report(raw)
 
     REPORTS_DIR.mkdir(exist_ok=True)
