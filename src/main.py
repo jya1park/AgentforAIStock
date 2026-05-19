@@ -68,14 +68,24 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-4o")
     long_body, short_body = _split_report(raw)
 
+    print("calling red-team agent (gpt-4o) for fact-check...")
+    review = call_agent(
+        "red-team",
+        f"# 입력 페이로드\n{payload}\n\n# 분석가 리포트\n{long_body}",
+        model="gpt-4o",
+    )
+
     REPORTS_DIR.mkdir(exist_ok=True)
     stem = f"{date.today().isoformat()}_{mode}"
     out_md = REPORTS_DIR / f"{stem}.md"
     out_kakao = REPORTS_DIR / f"{stem}_kakao.txt"
+    out_review = REPORTS_DIR / f"{stem}_redteam.md"
     out_md.write_text(long_body, encoding="utf-8")
     out_kakao.write_text(short_body, encoding="utf-8")
+    out_review.write_text(review, encoding="utf-8")
     print(f"saved {out_md}")
     print(f"saved {out_kakao} ({len(short_body)} chars)")
+    print(f"saved {out_review}")
     return out_md
 
 
