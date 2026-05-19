@@ -5,6 +5,7 @@ import pandas as pd
 import yfinance as yf
 
 CACHE_DIR = Path("/tmp")
+EXPECTED_COLS = {"close", "prev_close", "change_pct", "volume", "ma5", "ma20", "vol_avg20", "volatility20"}
 
 
 def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
@@ -13,11 +14,14 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
     Columns: close, prev_close, change_pct, volume, ma5, ma20,
              vol_avg20 (20d avg volume), volatility20 (20d daily-return stddev %).
     Index: ticker. Tickers with no data are dropped.
+    Cache is invalidated if column schema differs (covers schema upgrades).
     """
     today = today or date.today()
     cache_path = CACHE_DIR / f"yf_cache_{today.isoformat()}.pkl"
     if cache_path.exists():
-        return pd.read_pickle(cache_path)
+        cached = pd.read_pickle(cache_path)
+        if EXPECTED_COLS.issubset(cached.columns):
+            return cached
 
     hist = yf.download(
         tickers=" ".join(tickers),
@@ -50,9 +54,8 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
             "volatility20": daily_ret.tail(20).std() * 100,
         })
 
-    cols = ["close", "prev_close", "change_pct", "volume", "ma5", "ma20", "vol_avg20", "volatility20"]
     if not rows:
-        return pd.DataFrame(columns=cols)
+        return pd.DataFrame(columns=list(EXPECTED_COLS))
     df = pd.DataFrame(rows).set_index("ticker")
     df.to_pickle(cache_path)
     return df

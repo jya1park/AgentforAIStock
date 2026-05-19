@@ -11,7 +11,8 @@ def test_cache_hit_returns_pickled(tmp_path, monkeypatch):
     monkeypatch.setattr(data_fetcher, "CACHE_DIR", tmp_path)
     today = date(2026, 5, 19)
     expected = pd.DataFrame(
-        [{"close": 100.0, "prev_close": 95.0, "change_pct": 5.26, "volume": 1e6, "ma5": 98.0, "ma20": 90.0}],
+        [{"close": 100.0, "prev_close": 95.0, "change_pct": 5.26, "volume": 1e6,
+          "ma5": 98.0, "ma20": 90.0, "vol_avg20": 8e5, "volatility20": 2.0}],
         index=pd.Index(["NVDA"], name="ticker"),
     )
     expected.to_pickle(tmp_path / f"yf_cache_{today.isoformat()}.pkl")
@@ -20,6 +21,20 @@ def test_cache_hit_returns_pickled(tmp_path, monkeypatch):
 
     assert df.index.tolist() == ["NVDA"]
     assert df.loc["NVDA", "close"] == 100.0
+
+
+def test_stale_schema_cache_is_ignored(tmp_path, monkeypatch):
+    """Cache missing new columns should be refetched, not silently reused."""
+    monkeypatch.setattr(data_fetcher, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(data_fetcher.yf, "download", lambda **kw: pd.DataFrame())
+    today = date(2026, 5, 19)
+    pd.DataFrame(
+        [{"close": 100.0, "prev_close": 95.0, "change_pct": 5.26, "volume": 1e6, "ma5": 98.0, "ma20": 90.0}],
+        index=pd.Index(["NVDA"], name="ticker"),
+    ).to_pickle(tmp_path / f"yf_cache_{today.isoformat()}.pkl")
+
+    df = fetch_quotes(["NVDA"], today=today)
+    assert df.empty  # refetch attempted, all failed → empty
 
 
 def test_all_fetches_fail_returns_empty_frame(tmp_path, monkeypatch):
