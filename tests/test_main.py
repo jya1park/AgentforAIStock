@@ -87,7 +87,11 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "fetch_quotes", fake_fetch_quotes)
     monkeypatch.setattr(main, "fetch_headlines", fake_fetch_headlines)
     monkeypatch.setattr(main, "fetch_vix",
-                        lambda: {"vix": 14.5, "vix_7d_change_pct": -2.1, "interpretation": "정상"})
+                        lambda: {"vix": 14.5, "vix_7d_change_pct": -2.1, "interpretation": "정상 (13-18)"})
+    monkeypatch.setattr(main, "fetch_yields",
+                        lambda: {"y3m": 4.20, "y10y": 4.45, "y30y": 4.60,
+                                 "y10y_7d_bp": -8.0, "y30y_7d_bp": -10.0,
+                                 "spread_10y_3m_bp": 25.0, "curve": "평탄화 (0-50bp)"})
     monkeypatch.setattr(main, "call_agent", fake_call_agent)
     monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
 
@@ -103,7 +107,9 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert [c["name"] for c in calls] == ["stock-analyst", "red-team"]
     assert "mode=morning" in calls[0]["input"]
     assert "head-NVDA" in calls[0]["input"]
-    assert "VIX: 14.50" in calls[0]["input"]  # macro signal injected
+    assert "VIX: 14.50" in calls[0]["input"]  # vix signal injected
+    assert "10Y: 4.45%" in calls[0]["input"]  # yields signal injected
+    assert "+25.0bp" in calls[0]["input"]  # spread shown
     assert "# 입력 페이로드" in calls[1]["input"]
     assert "# 분석가 리포트" in calls[1]["input"]
     assert "fake report body" in calls[1]["input"]  # long_body passed to red-team
