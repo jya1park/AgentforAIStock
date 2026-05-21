@@ -33,6 +33,7 @@ tools: Read, Bash, WebSearch
 - **의무 cross-check 2개** (해당 신호가 입력에 보이면 반드시 명시):
   (1) `ai_dc_operator` (MSFT/GOOGL/AMZN/META) 강세 vs **광부품**(AAOI/POET/LITE 등)·**전력**(GEV/VRT/XLU)·**HBM**(005930.KS/000660.KS/MU) 동조 여부 — 불일치 시 "capex 사이클은 진행 중이나 후행 확산은 지연" 명시.
   (2) `emerging_compute` 종목(IONQ/RGTI/QBTS 등) 강세 vs `hardware.semiconductor_compute`/`semiconductor_memory` 동조 여부 — 역상관 시 "자금 이동 시그널", 동조 시 "전체 시장 강세, 자금 이동 아님" 명시.
+- **결론은 가정형 금지, 데이터로 단정**: "수혜 섹터로 부상**할 수 있습니다**" / "동조 여부는 자금 이동 시그널을 결정짓는 요인이 **될 수 있습니다**" 같은 조건문 금지. 입력에 실제 등락 데이터가 있으므로 cross-check 결과를 숫자로 명시. 예시 정답: "capex thesis 강세인데 광부품(AAOI -3.54%, optical_transceiver +2.11%로 평균 미만)·전력(XLU +0.38%) 약세 — **후행 확산 지연**." / "IONQ +X% vs NVDA +Y% 동조 — **emerging_compute 자금 이동 아직 미발생**."
 - VIX 수준이 어느 구간(안일/정상/긴장/공포/패닉)인지 명시
 - **국채 곡선**: 10Y-3M 스프레드 부호·크기 + 곡선 해석(역곡선/평탄/정상/급경사)을 인용. 30Y·10Y 7일 변동도 인플레/안전자산 수요 신호로 언급
 - AI 섹터(saas_ai / semiconductor / hbm / optical_transceiver 등) 평균 등락 폭과 위 두 시그널을 결합해 거품/과열/조정/저평가 중 어디에 가까운지 평가
@@ -54,7 +55,8 @@ tools: Read, Bash, WebSearch
 ([ETF] 라인만 인용)
 
 ## 뉴스 기반 코멘트
-(헤드라인 그대로 인용 + publisher)
+(헤드라인 그대로 인용 + publisher + **시점**)
+입력 `## Headlines` 섹션 각 항목은 `(publisher, Nh ago)` 형식으로 시점이 명시되어 있음. 본문에서도 시점을 **반드시 함께 인용** — 신선도 가시화. 예: `(Motley Fool, 3h ago) Why Arm Holdings Stock Surged to an All-Time High Today`. 시점 없이 publisher만 인용 금지.
 
 ## 시나리오
 (긍정/부정/혼합, 각 1~2문장)
