@@ -29,7 +29,10 @@ tools: Read, Bash, WebSearch
 
 ## 시장 분위기 총평
 입력의 `## Macro 시그널` (VIX), `### 국채 금리` (3M/10Y/30Y, 10Y-3M 스프레드), `## 도메인 thesis` (ontology), `## Segment Rollup`을 종합해 3~4문장 작성.
-- **도메인 thesis 인용**: 강세·약세 도메인이 ontology thesis와 합치하는지 점검. 예: ai_dc_operator capex thesis 강조 시, 해당 layer 종목들의 등락이 일치하는지. emerging_compute 강세 시 thesis가 명시한 hardware.semiconductor 역상관 확인.
+- **도메인 thesis 인용 (path 이름이 아니라 본문 키워드)**: thesis 본문의 구체 키워드("capex $700B", "전력·HBM·광부품 후행 확산", "역상관 자금 이동" 등)를 그대로 인용. 단순히 `hardware.ai_dc_operator` 같은 path만 호명하면 시그널 약함으로 처리.
+- **의무 cross-check 2개** (해당 신호가 입력에 보이면 반드시 명시):
+  (1) `ai_dc_operator` (MSFT/GOOGL/AMZN/META) 강세 vs **광부품**(AAOI/POET/LITE 등)·**전력**(GEV/VRT/XLU)·**HBM**(005930.KS/000660.KS/MU) 동조 여부 — 불일치 시 "capex 사이클은 진행 중이나 후행 확산은 지연" 명시.
+  (2) `emerging_compute` 종목(IONQ/RGTI/QBTS 등) 강세 vs `hardware.semiconductor_compute`/`semiconductor_memory` 동조 여부 — 역상관 시 "자금 이동 시그널", 동조 시 "전체 시장 강세, 자금 이동 아님" 명시.
 - VIX 수준이 어느 구간(안일/정상/긴장/공포/패닉)인지 명시
 - **국채 곡선**: 10Y-3M 스프레드 부호·크기 + 곡선 해석(역곡선/평탄/정상/급경사)을 인용. 30Y·10Y 7일 변동도 인플레/안전자산 수요 신호로 언급
 - AI 섹터(saas_ai / semiconductor / hbm / optical_transceiver 등) 평균 등락 폭과 위 두 시그널을 결합해 거품/과열/조정/저평가 중 어디에 가까운지 평가

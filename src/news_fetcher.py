@@ -3,6 +3,7 @@
 import os
 import re
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 import yfinance as yf
@@ -24,6 +25,30 @@ def _clean(text: str) -> str:
     return text.strip()
 
 
+def _parse_pubdate(s) -> datetime | None:
+    """Parse ISO 8601 (NewsAPI), RFC 1123 (Naver), or epoch int (Yahoo).
+    Always returns tz-aware UTC datetime, or None on failure."""
+    if not s:
+        return None
+    if isinstance(s, (int, float)):
+        try:
+            return datetime.fromtimestamp(s, tz=timezone.utc)
+        except (ValueError, OSError):
+            return None
+    if not isinstance(s, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    try:
+        dt = parsedate_to_datetime(s)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return None
+
+
 def search_news(query: str, count: int = 5) -> list[dict]:
     """Naver Search News API. Returns [{title, link, pubDate, publisher}]. Empty on failure."""
     headers = {
@@ -41,6 +66,7 @@ def search_news(query: str, count: int = 5) -> list[dict]:
             "title": _clean(it["title"]),
             "link": it["link"],
             "pubDate": it.get("pubDate", ""),
+            "published_at": _parse_pubdate(it.get("pubDate", "")),
             "publisher": "Naver",
         }
         for it in resp.json().get("items", [])
@@ -59,10 +85,12 @@ def search_news_yahoo(ticker: str, count: int = 5) -> list[dict]:
         title = content.get("title", "")
         if not title:
             continue
+        raw_date = content.get("pubDate") or content.get("providerPublishTime") or ""
         out.append({
             "title": title,
             "link": (content.get("canonicalUrl") or {}).get("url") or content.get("link", ""),
-            "pubDate": content.get("pubDate") or "",
+            "pubDate": raw_date,
+            "published_at": _parse_pubdate(raw_date),
             "publisher": (content.get("provider") or {}).get("displayName") or content.get("publisher", ""),
         })
     return out
@@ -95,10 +123,12 @@ def search_news_newsapi(query: str, count: int = 5) -> list[dict]:
         title = it.get("title", "")
         if not title:
             continue
+        raw_date = it.get("publishedAt", "")
         out.append({
             "title": title,
             "link": it.get("url", ""),
-            "pubDate": it.get("publishedAt", ""),
+            "pubDate": raw_date,
+            "published_at": _parse_pubdate(raw_date),
             "publisher": (it.get("source") or {}).get("name", "NewsAPI"),
         })
     return out

@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pandas as pd
 import pytest
 
@@ -55,16 +57,47 @@ def test_thesis_block_empty_returns_empty_string():
 
 
 def test_news_section_skips_empty_tickers():
+    now = datetime(2026, 5, 21, 12, tzinfo=timezone.utc)
     out = _news_section({
-        "NVDA": [{"title": "Nvidia rally on AI demand", "publisher": "CNBC"}],
+        "NVDA": [{"title": "Nvidia rally on AI demand", "publisher": "CNBC",
+                  "published_at": now - timedelta(hours=2)}],
         "AAOI": [],
-        "AMD": [{"title": "AMD beats Q1", "publisher": "Reuters"}],
-    })
+        "AMD": [{"title": "AMD beats Q1", "publisher": "Reuters",
+                 "published_at": now - timedelta(hours=5)}],
+    }, now=now)
     assert "### NVDA" in out
-    assert "(CNBC) Nvidia rally on AI demand" in out
+    assert "(CNBC, 2h ago) Nvidia rally on AI demand" in out
     assert "### AAOI" not in out
     assert "### AMD" in out
-    assert "(Reuters) AMD beats Q1" in out
+    assert "(Reuters, 5h ago) AMD beats Q1" in out
+
+
+def test_news_section_drops_stale_and_undated():
+    now = datetime(2026, 5, 21, 12, tzinfo=timezone.utc)
+    out = _news_section({
+        "NVDA": [
+            {"title": "fresh", "publisher": "CNBC", "published_at": now - timedelta(hours=10)},
+            {"title": "stale", "publisher": "CNBC", "published_at": now - timedelta(hours=120)},
+            {"title": "undated", "publisher": "CNBC"},
+            {"title": "no_parse", "publisher": "CNBC", "published_at": None},
+        ],
+    }, now=now)
+    assert "fresh" in out
+    assert "stale" not in out
+    assert "undated" not in out
+    assert "no_parse" not in out
+
+
+def test_news_section_sorts_newest_first():
+    now = datetime(2026, 5, 21, 12, tzinfo=timezone.utc)
+    out = _news_section({
+        "NVDA": [
+            {"title": "older", "publisher": "CNBC", "published_at": now - timedelta(hours=20)},
+            {"title": "newest", "publisher": "CNBC", "published_at": now - timedelta(hours=1)},
+            {"title": "middle", "publisher": "CNBC", "published_at": now - timedelta(hours=8)},
+        ],
+    }, now=now)
+    assert out.index("newest") < out.index("middle") < out.index("older")
 
 
 def test_main_e2e_with_mocks(monkeypatch, tmp_path):
@@ -89,7 +122,8 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
         return fake_df
 
     def fake_fetch_headlines(tickers, ontology, per_ticker=3):
-        return {t: [{"title": f"head-{t}", "publisher": "CNBC"}] for t in tickers}
+        recent = datetime.now(timezone.utc) - timedelta(hours=3)
+        return {t: [{"title": f"head-{t}", "publisher": "CNBC", "published_at": recent}] for t in tickers}
 
     def fake_call_agent(name, user_input, model="gpt-4o-mini"):
         calls.append({"name": name, "input": user_input, "model": model})

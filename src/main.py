@@ -2,7 +2,7 @@
 
 import argparse
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from src.agents import call_agent
@@ -37,14 +37,31 @@ def _split_report(raw: str) -> tuple[str, str]:
     return long_body, short_body
 
 
-def _news_section(headlines: dict[str, list[dict]]) -> str:
-    lines = ["", "## Headlines (top movers)"]
+def _age_label(now: datetime, dt: datetime) -> str:
+    hours = (now - dt).total_seconds() / 3600
+    if hours < 1:
+        return "<1h ago"
+    if hours < 48:
+        return f"{int(hours)}h ago"
+    return f"{int(hours / 24)}d ago"
+
+
+def _news_section(headlines: dict[str, list[dict]], now: datetime | None = None, max_age_hours: int = 72) -> str:
+    """Headlines sorted newest first, age stamped, items older than cutoff or
+    without parseable timestamp dropped (no freshness ⇒ noise)."""
+    now = now or datetime.now(timezone.utc)
+    lines = ["", "## Headlines (top movers, ≤72h)"]
     for ticker, items in headlines.items():
-        if not items:
+        fresh = [
+            it for it in items
+            if it.get("published_at") and (now - it["published_at"]).total_seconds() / 3600 <= max_age_hours
+        ]
+        if not fresh:
             continue
+        fresh.sort(key=lambda x: x["published_at"], reverse=True)
         lines.append(f"### {ticker}")
-        for it in items:
-            lines.append(f"- ({it['publisher']}) {it['title']}")
+        for it in fresh:
+            lines.append(f"- ({it['publisher']}, {_age_label(now, it['published_at'])}) {it['title']}")
     return "\n".join(lines)
 
 

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -7,6 +8,7 @@ from src import news_fetcher
 from src.news_fetcher import (
     _clean,
     _dedupe,
+    _parse_pubdate,
     fetch_headlines,
     search_news,
     search_news_newsapi,
@@ -42,7 +44,59 @@ def test_search_news_sends_auth_headers(monkeypatch):
     assert captured["headers"]["X-Naver-Client-Id"] == "id123"
     assert captured["headers"]["X-Naver-Client-Secret"] == "secret456"
     assert captured["params"] == {"query": "NVIDIA", "display": 5, "sort": "sim"}
-    assert result == [{"title": "NVDA", "link": "u", "pubDate": "t", "publisher": "Naver"}]
+    assert result == [{"title": "NVDA", "link": "u", "pubDate": "t", "published_at": None, "publisher": "Naver"}]
+
+
+def test_parse_pubdate_iso_with_z():
+    dt = _parse_pubdate("2026-05-19T10:00:00Z")
+    assert dt == datetime(2026, 5, 19, 10, 0, tzinfo=timezone.utc)
+
+
+def test_parse_pubdate_iso_with_offset():
+    dt = _parse_pubdate("2026-05-19T10:00:00+09:00")
+    assert dt.utcoffset().total_seconds() == 9 * 3600
+
+
+def test_parse_pubdate_rfc1123_naver_style():
+    dt = _parse_pubdate("Mon, 19 May 2026 14:32:00 +0900")
+    assert dt.year == 2026 and dt.month == 5 and dt.day == 19
+    assert dt.tzinfo is not None
+
+
+def test_parse_pubdate_epoch_int_yahoo_legacy():
+    dt = _parse_pubdate(1747641600)  # 2025-05-19 08:00 UTC
+    assert dt.tzinfo == timezone.utc
+    assert dt.year == 2025
+
+
+def test_parse_pubdate_returns_none_for_garbage():
+    assert _parse_pubdate("") is None
+    assert _parse_pubdate(None) is None
+    assert _parse_pubdate("not a date") is None
+    assert _parse_pubdate({"weird": "object"}) is None
+
+
+def test_search_news_naver_populates_published_at(monkeypatch):
+    monkeypatch.setenv("NAVER_CLIENT_ID", "id")
+    monkeypatch.setenv("NAVER_CLIENT_SECRET", "s")
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fake_response([
+        {"title": "x", "link": "u", "pubDate": "Mon, 19 May 2026 14:32:00 +0900"},
+    ]))
+    out = search_news("q")
+    assert out[0]["published_at"] is not None
+    assert out[0]["published_at"].year == 2026
+
+
+def test_search_news_yahoo_populates_published_at(monkeypatch):
+    fake = MagicMock()
+    fake.news = [{"content": {
+        "title": "t", "canonicalUrl": {"url": "u"},
+        "provider": {"displayName": "Reuters"},
+        "pubDate": "2026-05-19T10:00:00Z",
+    }}]
+    monkeypatch.setattr(news_fetcher.yf, "Ticker", lambda t: fake)
+    out = search_news_yahoo("NVDA")
+    assert out[0]["published_at"] == datetime(2026, 5, 19, 10, 0, tzinfo=timezone.utc)
 
 
 def test_search_news_returns_empty_on_http_error(monkeypatch):
