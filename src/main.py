@@ -11,6 +11,7 @@ from src.data_fetcher import fetch_quotes
 from src.macro import fetch_vix, fetch_yields, macro_block, yields_block
 from src.news_fetcher import fetch_headlines
 from src.ontology import EtfCatalog, Ontology
+from src.telegram_notifier import send_message
 
 REPORTS_DIR = Path(__file__).resolve().parent.parent / "reports"
 
@@ -126,6 +127,11 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     print(f"saved {out_md}")
     print(f"saved {out_kakao} ({len(short_body)} chars)")
     print(f"saved {out_review}")
+
+    if short_body:
+        sent = send_message(short_body)
+        print(f"telegram: {'sent' if sent else 'skipped (no creds or network error)'}")
+
     return out_md
 
 

@@ -143,6 +143,8 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
                                  "spread_10y_3m_bp": 25.0, "curve": "평탄화 (0-50bp)"})
     monkeypatch.setattr(main, "call_agent", fake_call_agent)
     monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
+    telegram_calls = []
+    monkeypatch.setattr(main, "send_message", lambda text: telegram_calls.append(text) or True)
 
     out = main.main("morning", top_n=2, per_ticker_news=1)
 
@@ -165,6 +167,7 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "# 분석가 리포트" in calls[1]["input"]
     assert "fake report body" in calls[1]["input"]  # long_body passed to red-team
     assert "005930.KS" not in captured["tickers"]  # morning filtered out KR
+    assert telegram_calls == ["NVDA AI 강세"]  # short_body sent to telegram
 
 
 def test_main_evening_filters_us(monkeypatch, tmp_path):
