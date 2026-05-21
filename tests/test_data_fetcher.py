@@ -3,8 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from unittest.mock import MagicMock
+
 from src import data_fetcher
-from src.data_fetcher import fetch_quotes
+from src.data_fetcher import fetch_quotes, fetch_ticker_info
 
 
 def test_cache_hit_returns_pickled(tmp_path, monkeypatch):
@@ -57,3 +59,37 @@ def test_columns_match_spec(tmp_path, monkeypatch):
     df = fetch_quotes(["X"], today=today)
 
     assert set(df.columns) == {"close", "prev_close", "change_pct", "volume", "ma5", "ma20", "vol_avg20", "volatility20"}
+
+
+def test_fetch_ticker_info_strips_none_fields(monkeypatch):
+    fake_ticker = MagicMock()
+    fake_ticker.info = {
+        "shortName": "Nvidia",
+        "trailingPE": 32.5,
+        "regularMarketPrice": 800.0,
+        "regularMarketVolume": 5_000_000,
+        "marketCap": 2_000_000_000_000,
+        "sector": "Technology",
+        "dividendYield": None,  # explicitly None — should be dropped
+        "industry": None,
+    }
+    monkeypatch.setattr(data_fetcher.yf, "Ticker", lambda t: fake_ticker)
+    result = fetch_ticker_info("NVDA")
+    assert result["ticker"] == "NVDA"
+    assert result["trailingPE"] == 32.5
+    assert result["marketCap"] == 2_000_000_000_000
+    assert "dividendYield" not in result
+    assert "industry" not in result
+
+
+def test_fetch_ticker_info_returns_empty_on_exception(monkeypatch):
+    def boom(t): raise RuntimeError("yfinance down")
+    monkeypatch.setattr(data_fetcher.yf, "Ticker", boom)
+    assert fetch_ticker_info("NVDA") == {}
+
+
+def test_fetch_ticker_info_returns_empty_when_info_empty(monkeypatch):
+    fake_ticker = MagicMock()
+    fake_ticker.info = {}
+    monkeypatch.setattr(data_fetcher.yf, "Ticker", lambda t: fake_ticker)
+    assert fetch_ticker_info("BOGUS") == {}

@@ -5,16 +5,18 @@ import os
 import sys
 import time
 
-from src import config  # noqa: F401 — triggers .env autoload
+from src import chat_memory, config  # noqa: F401 — triggers .env autoload
 from src.chat_handler import answer
 from src.telegram_notifier import get_updates, send_message
 
 WELCOME = (
-    "안녕하세요. AI 산업 일일 리포트를 자동 송출하고, 이 채팅에 보내는 질문에 GPT-4o로 답변합니다.\n\n"
+    "안녕하세요. AI 산업 일일 리포트를 자동 송출하고, 이 채팅의 질문에 GPT-4o로 답변합니다.\n\n"
     "예시 질문:\n"
     "- 오늘 POET 왜 떨어졌어?\n"
-    "- 광부품 섹터 전반은 어때?\n"
+    "- MU PER 얼마야?\n"
+    "- NVDA 거래량 평균 대비 어때?\n"
     "- HBM 캐파 병목 어디서 발생?\n\n"
+    "직전 10턴 대화를 기억합니다. /reset 으로 대화 기록 초기화.\n\n"
     "참고용 분석만 제공합니다 — 투자 결정은 본인 책임."
 )
 
@@ -34,15 +36,21 @@ def handle_message(msg: dict) -> None:
     if text in ("/start", "/help"):
         send_message(WELCOME, chat_id=chat_id)
         return
+    if text == "/reset":
+        chat_memory.clear(chat_id)
+        send_message("대화 기록을 초기화했습니다.", chat_id=chat_id)
+        return
     print(f"q: {text}")
+    history = chat_memory.load(chat_id)
     try:
-        reply = answer(text)
+        reply = answer(text, history=history)
     except Exception as e:
         print(f"answer error: {e}")
         send_message("일시적 오류로 답변 생성 실패. 잠시 후 다시 시도해 주세요.", chat_id=chat_id)
         return
     send_message(reply, chat_id=chat_id)
-    print(f"a: ({len(reply)} chars)")
+    chat_memory.append(chat_id, text, reply)
+    print(f"a: ({len(reply)} chars, history={len(history) + 2})")
 
 
 def main() -> None:

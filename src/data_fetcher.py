@@ -59,3 +59,26 @@ def fetch_quotes(tickers: list[str], today: date | None = None) -> pd.DataFrame:
     df = pd.DataFrame(rows).set_index("ticker")
     df.to_pickle(cache_path)
     return df
+
+
+_INFO_FIELDS = [
+    "shortName", "longName", "currency", "marketCap",
+    "trailingPE", "forwardPE", "trailingEps", "forwardEps",
+    "dividendYield", "beta",
+    "fiftyTwoWeekHigh", "fiftyTwoWeekLow",
+    "regularMarketPrice", "regularMarketVolume", "averageVolume",
+    "sector", "industry",
+]
+
+
+def fetch_ticker_info(ticker: str) -> dict:
+    """Fundamentals + price snapshot for one ticker. Empty dict if yfinance returns nothing.
+    Strips None fields so the caller only sees populated values (some tickers lack PE, dividend, etc)."""
+    try:
+        info = yf.Ticker(ticker).info or {}
+    except Exception:
+        return {}
+    out = {k: info[k] for k in _INFO_FIELDS if info.get(k) is not None}
+    if out:
+        out["ticker"] = ticker
+    return out
