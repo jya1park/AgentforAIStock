@@ -40,6 +40,8 @@ tools: Read, Bash, WebSearch
 
 ## 상위 변동
 (상승·하락 주요 종목, 변동률 + 헤드라인 인용)
+가격 방향과 헤드라인 sentiment가 일치하지 않는 종목(가격↑ 뉴스↓, 또는 가격↓ 뉴스↑)이 있으면 **명시적으로** 언급.
+예: "POET +13.08% 상승했으나 헤드라인은 우려·하락 일색 — sell-the-news 또는 short covering 가능성, 추격 매수 주의."
 
 ## 세그먼트 롤업
 (segment별 평균 등락, ontology 어휘 사용)
