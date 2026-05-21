@@ -43,3 +43,24 @@ def send_message(text: str, chat_id: str | None = None, bot_token: str | None = 
         except requests.RequestException:
             return False
     return True
+
+
+def get_updates(offset: int | None = None, timeout: int = 25, bot_token: str | None = None) -> list[dict]:
+    """Long-poll Bot API getUpdates. Returns list of update dicts; [] on missing token or error."""
+    token = bot_token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        return []
+    params: dict = {"timeout": timeout}
+    if offset is not None:
+        params["offset"] = offset
+    try:
+        r = requests.get(
+            f"https://api.telegram.org/bot{token}/getUpdates",
+            params=params,
+            timeout=timeout + 5,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data.get("result", []) if data.get("ok") else []
+    except requests.RequestException:
+        return []

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import requests
 
-from src.telegram_notifier import _split_for_telegram, send_message
+from src.telegram_notifier import _split_for_telegram, get_updates, send_message
 
 
 def _ok_response() -> MagicMock:
@@ -97,3 +97,38 @@ def test_send_uses_env_when_no_args(monkeypatch):
     assert send_message("via env") is True
     assert "env_token" in captured["url"]
     assert captured["json"]["chat_id"] == "env_chat"
+
+
+def test_get_updates_returns_empty_without_token(monkeypatch):
+    monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
+    assert get_updates() == []
+
+
+def test_get_updates_returns_result_list(monkeypatch):
+    captured = {}
+    fake = MagicMock()
+    fake.raise_for_status.return_value = None
+    fake.json.return_value = {"ok": True, "result": [{"update_id": 1, "message": {"text": "hi"}}]}
+    def fake_get(url, params, timeout):
+        captured["url"] = url
+        captured["params"] = params
+        return fake
+    monkeypatch.setattr(requests, "get", fake_get)
+    updates = get_updates(offset=5, timeout=25, bot_token="t")
+    assert updates == [{"update_id": 1, "message": {"text": "hi"}}]
+    assert captured["params"] == {"timeout": 25, "offset": 5}
+    assert "/bott/getUpdates" in captured["url"]
+
+
+def test_get_updates_returns_empty_on_api_error(monkeypatch):
+    fake = MagicMock()
+    fake.raise_for_status.return_value = None
+    fake.json.return_value = {"ok": False, "error_code": 409}
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: fake)
+    assert get_updates(bot_token="t") == []
+
+
+def test_get_updates_returns_empty_on_network_error(monkeypatch):
+    def boom(*a, **kw): raise requests.ConnectionError()
+    monkeypatch.setattr(requests, "get", boom)
+    assert get_updates(bot_token="t") == []
