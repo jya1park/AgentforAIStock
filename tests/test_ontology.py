@@ -32,6 +32,16 @@ def test_tags_returns_empty_for_unknown():
     assert ont.tags("NOT_A_TICKER") == []
 
 
+def test_thesis_entries_present():
+    ont = Ontology.load()
+    entries = ont.thesis_entries()
+    paths = {e["path"] for e in entries}
+    assert "hardware.ai_dc_operator" in paths
+    assert "emerging_compute" in paths
+    for e in entries:
+        assert e["thesis"].strip() != ""
+
+
 def test_etf_catalog_load():
     cat = EtfCatalog.load()
     tickers = cat.all_tickers()

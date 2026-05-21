@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from src import main
-from src.main import _filter_by_mode, _is_kr, _news_section, _split_report
+from src.main import _filter_by_mode, _is_kr, _news_section, _split_report, _thesis_block
 
 
 def test_is_kr_suffixes():
@@ -37,6 +37,21 @@ def test_split_report_falls_back_when_no_fences():
     long_b, short_b = _split_report(raw)
     assert long_b == "no fences here, just text"
     assert short_b == ""
+
+
+def test_thesis_block_renders_entries():
+    out = _thesis_block([
+        {"path": "hardware.ai_dc_operator", "thesis": "capex 700B"},
+        {"path": "emerging_compute", "thesis": "역상관 시그널"},
+    ])
+    assert "도메인 thesis" in out
+    assert "**hardware.ai_dc_operator**" in out
+    assert "capex 700B" in out
+    assert "**emerging_compute**" in out
+
+
+def test_thesis_block_empty_returns_empty_string():
+    assert _thesis_block([]) == ""
 
 
 def test_news_section_skips_empty_tickers():
@@ -110,6 +125,8 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "VIX: 14.50" in calls[0]["input"]  # vix signal injected
     assert "10Y: 4.45%" in calls[0]["input"]  # yields signal injected
     assert "+25.0bp" in calls[0]["input"]  # spread shown
+    assert "도메인 thesis" in calls[0]["input"]  # ontology thesis injected
+    assert "hardware.ai_dc_operator" in calls[0]["input"]
     assert "# 입력 페이로드" in calls[1]["input"]
     assert "# 분석가 리포트" in calls[1]["input"]
     assert "fake report body" in calls[1]["input"]  # long_body passed to red-team

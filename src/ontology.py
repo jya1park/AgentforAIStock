@@ -39,6 +39,18 @@ class Ontology:
                 return c.get("name")
         return None
 
+    def thesis_entries(self) -> list[dict]:
+        """All thesis fields at domain or layer level, with path context.
+        Returns [{"path": "hardware.ai_dc_operator", "thesis": "..."}, ...]"""
+        out = []
+        for d, dom in self.raw["domains"].items():
+            if dom.get("thesis"):
+                out.append({"path": d, "thesis": dom["thesis"]})
+            for l, layer in dom.get("layers", {}).items():
+                if layer.get("thesis"):
+                    out.append({"path": f"{d}.{l}", "thesis": layer["thesis"]})
+        return out
+
     def _iter_companies(self):
         for d, dom in self.raw["domains"].items():
             for l, layer in dom.get("layers", {}).items():

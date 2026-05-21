@@ -48,6 +48,15 @@ def _news_section(headlines: dict[str, list[dict]]) -> str:
     return "\n".join(lines)
 
 
+def _thesis_block(theses: list[dict]) -> str:
+    if not theses:
+        return ""
+    lines = ["## 도메인 thesis (ontology — 거품·강세 판단 참고)"]
+    for t in theses:
+        lines.append(f"- **{t['path']}**: {t['thesis']}")
+    return "\n".join(lines) + "\n"
+
+
 def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     ontology = Ontology.load()
     etfs = EtfCatalog.load()
@@ -71,6 +80,8 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
         f"# 시점\n오늘: {today_iso} (이 날짜를 현재로 간주, 학습 cutoff 무시)\n\n"
         + macro_block(vix_data)
         + yields_block(yields_data)
+        + "\n"
+        + _thesis_block(ontology.thesis_entries())
         + "\n"
         + to_markdown(analysis)
         + "\n"
