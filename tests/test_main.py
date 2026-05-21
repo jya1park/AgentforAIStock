@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src import main
-from src.main import _filter_by_mode, _is_kr, _news_section, _split_report, _thesis_block
+from src.main import _extract_long_body, _filter_by_mode, _is_kr, _news_section, _thesis_block
 
 
 def test_is_kr_suffixes():
@@ -27,18 +27,13 @@ def test_filter_by_mode_invalid_raises():
         _filter_by_mode(["NVDA"], "midday")
 
 
-def test_split_report_extracts_both_fences():
-    raw = "preamble\n```long_markdown\n# Daily Report\nbody text\n```\n\n```short_kakao\n핵심 한 줄\n```\ntrailer"
-    long_b, short_b = _split_report(raw)
-    assert long_b == "# Daily Report\nbody text"
-    assert short_b == "핵심 한 줄"
+def test_extract_long_body_strips_fence():
+    raw = "preamble\n```long_markdown\n# Daily Report\nbody text\n```\ntrailer"
+    assert _extract_long_body(raw) == "# Daily Report\nbody text"
 
 
-def test_split_report_falls_back_when_no_fences():
-    raw = "no fences here, just text"
-    long_b, short_b = _split_report(raw)
-    assert long_b == "no fences here, just text"
-    assert short_b == ""
+def test_extract_long_body_falls_back_when_no_fence():
+    assert _extract_long_body("no fences here, just text") == "no fences here, just text"
 
 
 def test_thesis_block_renders_entries():
@@ -128,7 +123,7 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     def fake_call_agent(name, user_input, model="gpt-4o-mini"):
         calls.append({"name": name, "input": user_input, "model": model})
         if name == "stock-analyst":
-            return "```long_markdown\n## Report\nfake report body\n```\n```short_kakao\nNVDA AI 강세\n```"
+            return "```long_markdown\n## Report\nfake report body\n```"
         if name == "red-team":
             return "## 사실 정합성\n- head-NVDA: ✅ 일치\n- critical 환각: 없음"
         return ""
@@ -150,8 +145,7 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
 
     assert out.exists()
     assert out.read_text(encoding="utf-8") == "## Report\nfake report body"
-    kakao = tmp_path / out.name.replace(".md", "_kakao.txt")
-    assert kakao.read_text(encoding="utf-8") == "NVDA AI 강세"
+    assert not (tmp_path / out.name.replace(".md", "_kakao.txt")).exists()
     redteam = tmp_path / out.name.replace(".md", "_redteam.md")
     assert "사실 정합성" in redteam.read_text(encoding="utf-8")
 
@@ -167,7 +161,7 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "# 분석가 리포트" in calls[1]["input"]
     assert "fake report body" in calls[1]["input"]  # long_body passed to red-team
     assert "005930.KS" not in captured["tickers"]  # morning filtered out KR
-    assert telegram_calls == ["NVDA AI 강세"]  # short_body sent to telegram
+    assert telegram_calls == ["## Report\nfake report body"]  # long_body sent to telegram
 
 
 def test_main_evening_filters_us(monkeypatch, tmp_path):

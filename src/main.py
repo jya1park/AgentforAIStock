@@ -28,14 +28,10 @@ def _filter_by_mode(tickers: list[str], mode: str) -> list[str]:
     raise ValueError(f"unknown mode: {mode}")
 
 
-def _split_report(raw: str) -> tuple[str, str]:
-    """Extract bodies inside ```long_markdown ... ``` and ```short_kakao ... ``` fences.
-    Fallback: whole text → long, empty → short."""
-    long_m = re.search(r"```long_markdown\s*\n(.*?)```", raw, re.DOTALL)
-    short_m = re.search(r"```short_kakao\s*\n(.*?)```", raw, re.DOTALL)
-    long_body = long_m.group(1).strip() if long_m else raw.strip()
-    short_body = short_m.group(1).strip() if short_m else ""
-    return long_body, short_body
+def _extract_long_body(raw: str) -> str:
+    """Extract body inside ```long_markdown ... ``` fence. Fallback: whole text."""
+    m = re.search(r"```long_markdown\s*\n(.*?)```", raw, re.DOTALL)
+    return m.group(1).strip() if m else raw.strip()
 
 
 def _age_label(now: datetime, dt: datetime) -> str:
@@ -107,7 +103,7 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     )
     print("calling stock-analyst agent (gpt-4o)...")
     raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-4o")
-    long_body, short_body = _split_report(raw)
+    long_body = _extract_long_body(raw)
 
     print("calling red-team agent (gpt-4o) for fact-check...")
     review = call_agent(
@@ -119,17 +115,14 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     REPORTS_DIR.mkdir(exist_ok=True)
     stem = f"{date.today().isoformat()}_{mode}"
     out_md = REPORTS_DIR / f"{stem}.md"
-    out_kakao = REPORTS_DIR / f"{stem}_kakao.txt"
     out_review = REPORTS_DIR / f"{stem}_redteam.md"
     out_md.write_text(long_body, encoding="utf-8")
-    out_kakao.write_text(short_body, encoding="utf-8")
     out_review.write_text(review, encoding="utf-8")
-    print(f"saved {out_md}")
-    print(f"saved {out_kakao} ({len(short_body)} chars)")
+    print(f"saved {out_md} ({len(long_body)} chars)")
     print(f"saved {out_review}")
 
-    if short_body:
-        sent = send_message(short_body)
+    if long_body:
+        sent = send_message(long_body)
         print(f"telegram: {'sent' if sent else 'skipped (no creds or network error)'}")
 
     return out_md

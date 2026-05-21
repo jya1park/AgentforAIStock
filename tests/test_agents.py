@@ -7,7 +7,7 @@ from src.agents import call_agent, load_agent_prompt
 
 AGENT_NAMES = [
     "stock-analyst", "red-team", "ai-systems-expert",
-    "karpathy-reviewer", "ontology-curator", "news-curator", "kakao-writer",
+    "karpathy-reviewer", "ontology-curator", "news-curator",
 ]
 
 
