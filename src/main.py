@@ -8,7 +8,16 @@ from pathlib import Path
 from src.agents import call_agent
 from src.analyzer import analyze, to_markdown
 from src.data_fetcher import fetch_quotes
-from src.macro import fear_greed_block, fetch_fear_greed, fetch_vix, fetch_yields, macro_block, yields_block
+from src.macro import (
+    breadth_block,
+    fear_greed_block,
+    fetch_breadth,
+    fetch_fear_greed,
+    fetch_vix,
+    fetch_yields,
+    macro_block,
+    yields_block,
+)
 from src.news_fetcher import fetch_headlines
 from src.ontology import EtfCatalog, Ontology
 from src.telegram_notifier import send_message
@@ -91,11 +100,13 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
     vix_data = fetch_vix()
     yields_data = fetch_yields()
     fg_data = fetch_fear_greed()
+    breadth_data = fetch_breadth()
     payload = (
         f"# 시점\n오늘: {today_iso} (이 날짜를 현재로 간주, 학습 cutoff 무시)\n\n"
         + macro_block(vix_data)
         + yields_block(yields_data)
         + fear_greed_block(fg_data)
+        + breadth_block(breadth_data)
         + "\n"
         + _thesis_block(ontology.thesis_entries())
         + "\n"

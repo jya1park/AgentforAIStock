@@ -286,3 +286,100 @@ def test_fear_greed_interpret_thresholds():
     assert "중립" in macro._fg_interpret(50)
     assert "탐욕 (55-75)" in macro._fg_interpret(65)
     assert "극단적 탐욕" in macro._fg_interpret(80)
+
+
+def test_interpret_breadth_broad():
+    assert "broad" in macro._interpret_breadth(spread_pp=2.0, market_pct=1.5)
+    assert "broad" in macro._interpret_breadth(spread_pp=-2.5, market_pct=-1.0)
+
+
+def test_interpret_breadth_narrow_rally_market_down():
+    """Tech up while market down — the bubble-entry signal."""
+    out = macro._interpret_breadth(spread_pp=5.0, market_pct=-2.0)
+    assert "narrow rally" in out
+    assert "기술 강세" in out
+    assert "거품 진입" in out or "과열" in out
+
+
+def test_interpret_breadth_extreme_narrow_market_down():
+    out = macro._interpret_breadth(spread_pp=8.5, market_pct=-1.5)
+    assert "extreme narrow" in out
+
+
+def test_interpret_breadth_tech_lagging_market_rising():
+    """Market up while tech down — money rotation away from tech."""
+    out = macro._interpret_breadth(spread_pp=-4.0, market_pct=2.0)
+    assert "기술 약세" in out
+    assert "차익실현" in out or "자금 이동" in out
+
+
+def test_fetch_breadth_computes_5d_and_20d(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    # Build 25-day series; index -1 is today, -6 is 5d ago, -21 is 20d ago
+    soxx_closes = [100 + i * 0.5 for i in range(25)]  # gentle upward
+    soxx_closes[-1] = 115.0  # final pop → 5d/20d both positive
+    spy_closes = [400 + i * -0.2 for i in range(25)]
+    spy_closes[-1] = 392.0
+
+    def make_ticker(sym):
+        m = MagicMock()
+        closes = soxx_closes if sym == "SOXX" else spy_closes
+        m.history.return_value = pd.DataFrame({"Close": closes})
+        return m
+    monkeypatch.setattr(macro.yf, "Ticker", make_ticker)
+
+    out = macro.fetch_breadth()
+    assert "tech_5d_pct" in out and "market_5d_pct" in out
+    assert "spread_5d_pp" in out and "spread_20d_pp" in out
+    assert out["spread_5d_pp"] == round(out["tech_5d_pct"] - out["market_5d_pct"], 2)
+    assert "interpretation" in out
+
+
+def test_fetch_breadth_returns_empty_on_short_history(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    m = MagicMock()
+    m.history.return_value = pd.DataFrame({"Close": [100.0, 101.0]})  # only 2 days
+    monkeypatch.setattr(macro.yf, "Ticker", lambda s: m)
+    assert macro.fetch_breadth() == {}
+
+
+def test_fetch_breadth_returns_empty_on_exception(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    def boom(s): raise RuntimeError("net")
+    monkeypatch.setattr(macro.yf, "Ticker", boom)
+    assert macro.fetch_breadth() == {}
+
+
+def test_fetch_breadth_caches_per_day(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    calls = {"n": 0}
+    closes = [100 + i for i in range(25)]
+    def make_ticker(s):
+        calls["n"] += 1
+        m = MagicMock()
+        m.history.return_value = pd.DataFrame({"Close": closes})
+        return m
+    monkeypatch.setattr(macro.yf, "Ticker", make_ticker)
+    macro.fetch_breadth()
+    macro.fetch_breadth()
+    assert calls["n"] == 2  # 2 tickers fetched once; second call hits cache
+
+
+def test_breadth_block_renders_5d_20d_spread_interpretation():
+    b = {
+        "tech_5d_pct": 5.20, "market_5d_pct": -2.10, "spread_5d_pp": 7.30,
+        "tech_20d_pct": 12.40, "market_20d_pct": 1.80, "spread_20d_pp": 10.60,
+        "interpretation": "extreme narrow rally (기술 강세) — 시장 전반 약세 + 자금 기술주 집중, 과열 진입 시그널",
+    }
+    out = macro.breadth_block(b)
+    assert "시장 폭" in out
+    assert "SOXX" in out and "+5.20%" in out
+    assert "SPY" in out and "-2.10%" in out
+    assert "+7.30%p" in out
+    assert "20일" in out
+    assert "extreme narrow" in out
+    assert "가이드" in out
+
+
+def test_breadth_block_empty():
+    assert "데이터 없음" in macro.breadth_block({})

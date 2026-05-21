@@ -140,6 +140,10 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
                         lambda: {"score": 62.0, "rating": "greed", "rating_kr": "탐욕",
                                  "previous_close": 58.0, "previous_1_week": 55.0,
                                  "previous_1_month": 42.0, "previous_1_year": 50.0})
+    monkeypatch.setattr(main, "fetch_breadth",
+                        lambda: {"tech_5d_pct": 5.20, "market_5d_pct": -2.10, "spread_5d_pp": 7.30,
+                                 "tech_20d_pct": 12.40, "market_20d_pct": 1.80, "spread_20d_pp": 10.60,
+                                 "interpretation": "extreme narrow rally (기술 강세) — 과열 진입 시그널"})
     monkeypatch.setattr(main, "call_agent", fake_call_agent)
     monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
     telegram_calls = []
@@ -161,6 +165,10 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "Fear & Greed Index" in calls[0]["input"]  # F&G block injected
     assert "62.0 → 탐욕" in calls[0]["input"]  # current F&G value + Korean rating
     assert "1개월 전 42.0" in calls[0]["input"]  # F&G trend shown
+    assert "시장 폭" in calls[0]["input"]  # breadth block injected
+    assert "+5.20%" in calls[0]["input"] and "SOXX" in calls[0]["input"]  # breadth tech leg
+    assert "-2.10%" in calls[0]["input"] and "SPY" in calls[0]["input"]  # breadth market leg
+    assert "+7.30%p" in calls[0]["input"]  # 5d spread shown
     assert "도메인 thesis" in calls[0]["input"]  # ontology thesis injected
     assert "hardware.ai_dc_operator" in calls[0]["input"]
     assert "# 입력 페이로드" in calls[1]["input"]

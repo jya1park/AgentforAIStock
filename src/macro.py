@@ -226,3 +226,67 @@ def fear_greed_block(fg: dict) -> str:
         lines.append(f"- 추세 — {' / '.join(trend_parts)}")
     lines.append("- 구간 가이드: 극단적 공포 0-25 / 공포 25-45 / 중립 45-55 / 탐욕 55-75 / 극단적 탐욕 75-100")
     return "\n".join(lines) + "\n"
+
+
+_BREADTH_TICKERS = {"tech": "SOXX", "market": "SPY"}
+
+
+def _interpret_breadth(spread_pp: float, market_pct: float) -> str:
+    """Map (5d tech-market spread, 5d market return) to a regime label."""
+    abs_s = abs(spread_pp)
+    if abs_s < 3:
+        return "broad — 자금 분산, 건강한 흐름"
+    direction = "기술 강세" if spread_pp > 0 else "기술 약세"
+    if market_pct < 0 and spread_pp > 0:
+        severity = "extreme narrow" if abs_s > 7 else "narrow"
+        return f"{severity} rally ({direction}) — 시장 전반 약세 + 자금 기술주 집중, 과열 진입 시그널"
+    if market_pct > 0 and spread_pp < 0:
+        return f"기술 약세, 자금 이동 — 광의 시장만 상승, AI/반도체 차익실현 가능성"
+    if abs_s > 7:
+        return f"extreme narrow ({direction}) — 양극화 심화, 단기 추세 반전 위험"
+    return f"narrow ({direction})"
+
+
+def fetch_breadth(today: date | None = None) -> dict:
+    """Tech (SOXX) vs broad market (SPY) — 5d/20d returns + spread.
+    Returns {} if either ticker fails or history too short."""
+    today = today or date.today()
+    cache_path = CACHE_DIR / f"breadth_{today.isoformat()}.json"
+    if cache_path.exists():
+        return json.loads(cache_path.read_text())
+
+    out: dict = {}
+    for key, sym in _BREADTH_TICKERS.items():
+        try:
+            hist = yf.Ticker(sym).history(period="35d")
+        except Exception:
+            return {}
+        if hist.empty or len(hist) < 21:
+            return {}
+        close = hist["Close"]
+        out[f"{key}_5d_pct"] = round((close.iloc[-1] / close.iloc[-6] - 1) * 100, 2)
+        out[f"{key}_20d_pct"] = round((close.iloc[-1] / close.iloc[-21] - 1) * 100, 2)
+
+    out["spread_5d_pp"] = round(out["tech_5d_pct"] - out["market_5d_pct"], 2)
+    out["spread_20d_pp"] = round(out["tech_20d_pct"] - out["market_20d_pct"], 2)
+    out["interpretation"] = _interpret_breadth(out["spread_5d_pp"], out["market_5d_pct"])
+    cache_path.write_text(json.dumps(out))
+    return out
+
+
+def breadth_block(b: dict) -> str:
+    """Render breadth for the daily-report payload."""
+    if not b:
+        return "### 시장 폭 (Breadth)\n- 데이터 없음\n"
+    lines = ["### 시장 폭 (Breadth — 자금 집중도, 기술 vs 광의 시장)"]
+    lines.append(
+        f"- 5일: 기술(SOXX) {b['tech_5d_pct']:+.2f}% vs 시장(SPY) {b['market_5d_pct']:+.2f}% "
+        f"(스프레드 {b['spread_5d_pp']:+.2f}%p)"
+    )
+    lines.append(
+        f"- 20일: 기술(SOXX) {b['tech_20d_pct']:+.2f}% vs 시장(SPY) {b['market_20d_pct']:+.2f}% "
+        f"(스프레드 {b['spread_20d_pp']:+.2f}%p)"
+    )
+    lines.append(f"- 해석 (5일): {b['interpretation']}")
+    lines.append("- 가이드: |스프레드| <3%p broad / 3-7%p narrow / >7%p extreme narrow. 시장 음수 + 스프레드 양수 = 거품 진입 시그널.")
+    return "\n".join(lines) + "\n"

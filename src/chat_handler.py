@@ -6,7 +6,7 @@ from openai import OpenAI
 
 from src.agents import load_agent_prompt
 from src.data_fetcher import fetch_financials, fetch_ticker_info
-from src.macro import fetch_fear_greed
+from src.macro import fetch_breadth, fetch_fear_greed
 from src.main import REPORTS_DIR, _thesis_block
 from src.ontology import Ontology
 
@@ -74,12 +74,27 @@ TOOLS = [
             "parameters": {"type": "object", "properties": {}},
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_market_breadth",
+            "description": (
+                "Tech sector (SOXX) vs broad market (SPY S&P 500) returns over 5 and 20 days, with spread (%p). "
+                "Measures money concentration: narrow rally (market down + tech up, spread > 3%p) is a bubble "
+                "entry signal; broad means money is spread across sectors. "
+                "Call when the user asks about market breadth, narrow vs broad rally, money flow concentration, "
+                "sector divergence, whether the rally is healthy, or comparisons like '기술주는 오르는데 나머지는 떨어진다'."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
 ]
 
 _TOOL_HANDLERS = {
     "get_ticker_info": fetch_ticker_info,
     "get_financials": fetch_financials,
     "get_fear_greed": fetch_fear_greed,
+    "get_market_breadth": fetch_breadth,
 }
 
 
