@@ -52,7 +52,7 @@ def test_answer_returns_text_when_no_tool_call(monkeypatch, tmp_path):
     result = chat_handler.answer("오늘 시장 어때?")
     assert result == "단순 답변"
     assert captured["model"] == "gpt-4o"
-    assert captured["tools_count"] == 1
+    assert captured["tools_count"] == 3  # get_ticker_info, get_financials, get_fear_greed
     assert captured["messages"][-1] == {"role": "user", "content": "오늘 시장 어때?"}
 
 

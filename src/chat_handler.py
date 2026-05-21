@@ -5,7 +5,8 @@ import json
 from openai import OpenAI
 
 from src.agents import load_agent_prompt
-from src.data_fetcher import fetch_ticker_info
+from src.data_fetcher import fetch_financials, fetch_ticker_info
+from src.macro import fetch_fear_greed
 from src.main import REPORTS_DIR, _thesis_block
 from src.ontology import Ontology
 
@@ -35,9 +36,51 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_financials",
+            "description": (
+                "Recent income statement for a stock ticker via yfinance — revenue, gross profit, "
+                "operating income, net income, EBITDA. quarterly=True returns last ~4 quarters (default), "
+                "False returns annual. "
+                "Call when the user asks about earnings, sales/revenue trend, profit margins, "
+                "QoQ/YoY growth, or specific quarter results."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {"type": "string", "description": "Ticker symbol (NVDA, 005930.KS, etc)."},
+                    "quarterly": {
+                        "type": "boolean",
+                        "description": "True (default) for last ~4 quarters; False for annual statements.",
+                    },
+                },
+                "required": ["ticker"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_fear_greed",
+            "description": (
+                "CNN Fear & Greed Index — current US equity market sentiment as a 0-100 score "
+                "(0 = extreme fear, 100 = extreme greed) plus rating and trend snapshot "
+                "(previous_close, 1-week ago, 1-month ago, 1-year ago). "
+                "Call when the user asks about market sentiment, fear & greed, investor mood, "
+                "market psychology, or whether the market is overheated/fearful."
+            ),
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
 ]
 
-_TOOL_HANDLERS = {"get_ticker_info": fetch_ticker_info}
+_TOOL_HANDLERS = {
+    "get_ticker_info": fetch_ticker_info,
+    "get_financials": fetch_financials,
+    "get_fear_greed": fetch_fear_greed,
+}
 
 
 def _latest_report() -> str:

@@ -2,9 +2,13 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+import requests
 
 from src import macro
-from src.macro import _interpret, _interpret_curve, fetch_vix, fetch_yields, macro_block, yields_block
+from src.macro import (
+    _interpret, _interpret_curve, fetch_fear_greed, fetch_vix, fetch_yields,
+    macro_block, yields_block,
+)
 
 
 def test_interpret_thresholds():
@@ -137,3 +141,74 @@ def test_yields_block_renders_levels_spread_changes():
 
 def test_yields_block_empty():
     assert "데이터 없음" in yields_block({})
+
+
+def _fg_response(payload):
+    fake = MagicMock()
+    fake.raise_for_status.return_value = None
+    fake.json.return_value = payload
+    return fake
+
+
+def test_fetch_fear_greed_happy_path(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    captured = {}
+    def fake_get(url, headers, timeout):
+        captured["url"] = url
+        captured["headers"] = headers
+        return _fg_response({
+            "fear_and_greed": {
+                "score": 45.34,
+                "rating": "neutral",
+                "previous_close": 47.1,
+                "previous_1_week": 52.4,
+                "previous_1_month": 38.9,
+                "previous_1_year": 60.2,
+            }
+        })
+    monkeypatch.setattr(requests, "get", fake_get)
+    out = fetch_fear_greed()
+    assert out["score"] == 45.3
+    assert out["rating"] == "neutral"
+    assert out["rating_kr"] == "중립"
+    assert out["previous_1_month"] == 38.9
+    assert "Mozilla" in captured["headers"]["User-Agent"]
+
+
+def test_fetch_fear_greed_korean_rating_mapping(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response({
+        "fear_and_greed": {"score": 82, "rating": "extreme greed",
+                           "previous_close": 80, "previous_1_week": 75,
+                           "previous_1_month": 60, "previous_1_year": 40}
+    }))
+    assert fetch_fear_greed()["rating_kr"] == "극단적 탐욕"
+
+
+def test_fetch_fear_greed_returns_empty_on_network_error(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    def boom(*a, **kw): raise requests.ConnectionError()
+    monkeypatch.setattr(requests, "get", boom)
+    assert fetch_fear_greed() == {}
+
+
+def test_fetch_fear_greed_returns_empty_on_missing_score(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response({"fear_and_greed": {}}))
+    assert fetch_fear_greed() == {}
+
+
+def test_fetch_fear_greed_uses_cache(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    call_count = {"n": 0}
+    def counting_get(*a, **kw):
+        call_count["n"] += 1
+        return _fg_response({
+            "fear_and_greed": {"score": 50, "rating": "neutral",
+                               "previous_close": 48, "previous_1_week": 45,
+                               "previous_1_month": 40, "previous_1_year": 55}
+        })
+    monkeypatch.setattr(requests, "get", counting_get)
+    fetch_fear_greed()
+    fetch_fear_greed()  # second call should hit the disk cache
+    assert call_count["n"] == 1

@@ -4,6 +4,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+import requests
 import yfinance as yf
 
 CACHE_DIR = Path("/tmp")
@@ -118,3 +119,41 @@ def yields_block(y: dict) -> str:
         lines.append(f"- 7일 변동 — {', '.join(changes)}")
     lines.append("- 곡선 가이드: 역곡선 <0bp / 평탄 0-50bp / 정상 50-150bp / 급경사 >150bp")
     return "\n".join(lines) + "\n"
+
+
+_FG_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+_FG_RATING_KR = {
+    "extreme fear": "극단적 공포",
+    "fear": "공포",
+    "neutral": "중립",
+    "greed": "탐욕",
+    "extreme greed": "극단적 탐욕",
+}
+
+
+def fetch_fear_greed(today: date | None = None) -> dict:
+    """CNN Fear & Greed Index — current 0-100 score, rating, and trend snapshot.
+    Returns empty {} on network or schema error (unofficial endpoint can change)."""
+    today = today or date.today()
+    cache_path = CACHE_DIR / f"fear_greed_{today.isoformat()}.json"
+    if cache_path.exists():
+        return json.loads(cache_path.read_text())
+    try:
+        r = requests.get(_FG_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        r.raise_for_status()
+        fg = r.json().get("fear_and_greed", {})
+    except (requests.RequestException, ValueError):
+        return {}
+    if "score" not in fg:
+        return {}
+    out = {
+        "score": round(float(fg["score"]), 1),
+        "rating": fg.get("rating", ""),
+        "rating_kr": _FG_RATING_KR.get(fg.get("rating", "").lower(), fg.get("rating", "")),
+        "previous_close": round(float(fg["previous_close"]), 1) if fg.get("previous_close") is not None else None,
+        "previous_1_week": round(float(fg["previous_1_week"]), 1) if fg.get("previous_1_week") is not None else None,
+        "previous_1_month": round(float(fg["previous_1_month"]), 1) if fg.get("previous_1_month") is not None else None,
+        "previous_1_year": round(float(fg["previous_1_year"]), 1) if fg.get("previous_1_year") is not None else None,
+    }
+    cache_path.write_text(json.dumps(out))
+    return out

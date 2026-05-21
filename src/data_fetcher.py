@@ -82,3 +82,45 @@ def fetch_ticker_info(ticker: str) -> dict:
     if out:
         out["ticker"] = ticker
     return out
+
+
+_FIN_ROWS = {
+    "Total Revenue": "revenue",
+    "Gross Profit": "gross_profit",
+    "Operating Income": "operating_income",
+    "Net Income": "net_income",
+    "EBITDA": "ebitda",
+}
+
+
+def fetch_financials(ticker: str, quarterly: bool = True) -> dict:
+    """Recent revenue/operating income/net income/gross profit/EBITDA via yfinance.
+    quarterly=True returns last ~4 quarters (default), False returns annual.
+    Empty dict if yfinance returns nothing or all rows missing."""
+    try:
+        t = yf.Ticker(ticker)
+        fin = t.quarterly_financials if quarterly else t.financials
+    except Exception:
+        return {}
+    if fin is None or fin.empty:
+        return {}
+
+    periods = []
+    for col in fin.columns[:4]:
+        period = {"end": col.strftime("%Y-%m-%d") if hasattr(col, "strftime") else str(col)}
+        for row_label, key in _FIN_ROWS.items():
+            if row_label in fin.index:
+                val = fin.loc[row_label, col]
+                if pd.notna(val):
+                    period[key] = float(val)
+        if len(period) > 1:  # has at least one metric beyond the date
+            periods.append(period)
+
+    if not periods:
+        return {}
+    return {
+        "ticker": ticker,
+        "period_type": "quarterly" if quarterly else "annual",
+        "currency": "USD",  # yfinance reports in reporting currency; most US tickers USD
+        "periods": periods,
+    }
