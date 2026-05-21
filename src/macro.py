@@ -197,3 +197,32 @@ def fetch_fear_greed(today: date | None = None) -> dict:
     }
     cache_path.write_text(json.dumps(out))
     return out
+
+
+def _fg_interpret(score: float) -> str:
+    if score < 25:
+        return "극단적 공포 (0-25)"
+    if score < 45:
+        return "공포 (25-45)"
+    if score < 55:
+        return "중립 (45-55)"
+    if score < 75:
+        return "탐욕 (55-75)"
+    return "극단적 탐욕 (75-100)"
+
+
+def fear_greed_block(fg: dict) -> str:
+    """Render Fear & Greed for the daily-report payload — None values are skipped."""
+    if not fg:
+        return "### Fear & Greed Index\n- 데이터 없음\n"
+    lines = ["### Fear & Greed Index (CNN — US 시장 심리)"]
+    lines.append(f"- 현재: {fg['score']} → {fg['rating_kr']} ({_fg_interpret(fg['score'])})")
+    trend_parts = []
+    for label, key in [("전일", "previous_close"), ("1주 전", "previous_1_week"),
+                       ("1개월 전", "previous_1_month"), ("1년 전", "previous_1_year")]:
+        if fg.get(key) is not None:
+            trend_parts.append(f"{label} {fg[key]}")
+    if trend_parts:
+        lines.append(f"- 추세 — {' / '.join(trend_parts)}")
+    lines.append("- 구간 가이드: 극단적 공포 0-25 / 공포 25-45 / 중립 45-55 / 탐욕 55-75 / 극단적 탐욕 75-100")
+    return "\n".join(lines) + "\n"

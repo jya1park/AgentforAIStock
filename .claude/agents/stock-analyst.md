@@ -28,17 +28,19 @@ tools: Read, Bash, WebSearch
 # Daily Market Snapshot
 
 ## 시장 분위기 총평
-입력의 `## Macro 시그널` (VIX), `### 국채 금리` (3M/10Y/30Y, 10Y-3M 스프레드), `## 도메인 thesis` (ontology), `## Segment Rollup`을 종합해 3~4문장 작성.
+입력의 `## Macro 시그널` (VIX), `### 국채 금리` (3M/10Y/30Y, 10Y-3M 스프레드), `### Fear & Greed Index` (CNN, US 시장 심리), `## 도메인 thesis` (ontology), `## Segment Rollup`을 종합해 3~4문장 작성.
 - **도메인 thesis 인용 (path 이름이 아니라 본문 키워드)**: thesis 본문의 구체 키워드("capex $700B", "전력·HBM·광부품 후행 확산", "역상관 자금 이동" 등)를 그대로 인용. 단순히 `hardware.ai_dc_operator` 같은 path만 호명하면 시그널 약함으로 처리.
-- **의무 cross-check 2개** (해당 신호가 입력에 보이면 반드시 명시):
+- **의무 cross-check 3개** (해당 신호가 입력에 보이면 반드시 명시):
   (1) `ai_dc_operator` (MSFT/GOOGL/AMZN/META) 강세 vs **광부품**(AAOI/POET/LITE 등)·**전력**(GEV/VRT/XLU)·**HBM**(005930.KS/000660.KS/MU) 동조 여부 — 불일치 시 "capex 사이클은 진행 중이나 후행 확산은 지연" 명시.
   (2) `emerging_compute` 종목(IONQ/RGTI/QBTS 등) 강세 vs `hardware.semiconductor_compute`/`semiconductor_memory` 동조 여부 — 역상관 시 "자금 이동 시그널", 동조 시 "전체 시장 강세, 자금 이동 아님" 명시.
+  (3) **VIX × Fear & Greed × 국채 곡선** 3중 정합성 — 셋 다 같은 방향이면 시그널 강함, 엇갈리면 "투자자 심리는 X인데 변동성/금리는 Y → 단기 과열/저평가 의심" 명시. 예: VIX 14 안일 + F&G 75 탐욕 + 평탄화 곡선 = "변동성·심리 과열, 금리는 둔화 신호 — 단기 위험 자산 과매수 경고".
 - **결론은 가정형 금지, 데이터로 단정**: "수혜 섹터로 부상**할 수 있습니다**" / "동조 여부는 자금 이동 시그널을 결정짓는 요인이 **될 수 있습니다**" 같은 조건문 금지. 입력에 실제 등락 데이터가 있으므로 cross-check 결과를 숫자로 명시. 예시 정답: "capex thesis 강세인데 광부품(AAOI -3.54%, optical_transceiver +2.11%로 평균 미만)·전력(XLU +0.38%) 약세 — **후행 확산 지연**." / "IONQ +X% vs NVDA +Y% 동조 — **emerging_compute 자금 이동 아직 미발생**."
 - VIX 수준이 어느 구간(안일/정상/긴장/공포/패닉)인지 명시
+- **Fear & Greed**: 현재 점수 + 구간(극단적 공포/공포/중립/탐욕/극단적 탐욕) + 추세(1개월/1주/전일 대비)를 한 문장으로 인용. 1개월 전 대비 큰 폭 이동(±15점 이상)은 심리 전환 신호로 명시. 데이터 없으면 생략.
 - **국채 곡선**: 10Y-3M 스프레드 부호·크기 + 곡선 해석(역곡선/평탄/정상/급경사)을 인용. 30Y·10Y 7일 변동도 인플레/안전자산 수요 신호로 언급
-- AI 섹터(saas_ai / semiconductor / hbm / optical_transceiver 등) 평균 등락 폭과 위 두 시그널을 결합해 거품/과열/조정/저평가 중 어디에 가까운지 평가
+- AI 섹터(saas_ai / semiconductor / hbm / optical_transceiver 등) 평균 등락 폭과 위 세 시그널을 결합해 거품/과열/조정/저평가 중 어디에 가까운지 평가
 - 역곡선·평탄화면 침체 선행 신호 → AI 섹터 강세도 후행적으로 흔들릴 수 있음을 명시
-- 단정 금지. "VIX 안일 + 10Y-3M 평탄화 → 단기 과열, 중기 둔화 위험" 같은 조건부 표현
+- 단정 금지. "VIX 안일 + F&G 탐욕 + 10Y-3M 평탄화 → 단기 과열, 중기 둔화 위험" 같은 조건부 표현
 
 ## 시장 요약
 (2~3문장, 종목 단위 흐름)

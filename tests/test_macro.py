@@ -249,3 +249,40 @@ def test_fetch_fear_greed_uses_cache(monkeypatch, tmp_path):
     fetch_fear_greed()
     fetch_fear_greed()  # second call should hit the disk cache
     assert call_count["n"] == 1
+
+
+def test_fear_greed_block_renders_score_rating_trend():
+    fg = {"score": 62.0, "rating": "greed", "rating_kr": "탐욕",
+          "previous_close": 58.0, "previous_1_week": 55.0,
+          "previous_1_month": 42.0, "previous_1_year": 50.0}
+    out = macro.fear_greed_block(fg)
+    assert "Fear & Greed Index" in out
+    assert "62.0 → 탐욕" in out
+    assert "탐욕 (55-75)" in out  # bucket label
+    assert "전일 58.0" in out
+    assert "1주 전 55.0" in out
+    assert "1개월 전 42.0" in out
+    assert "1년 전 50.0" in out
+    assert "구간 가이드" in out
+
+
+def test_fear_greed_block_skips_missing_trend_fields():
+    fg = {"score": 30.0, "rating": "fear", "rating_kr": "공포",
+          "previous_close": 32.0,
+          "previous_1_week": None, "previous_1_month": None, "previous_1_year": None}
+    out = macro.fear_greed_block(fg)
+    assert "전일 32.0" in out
+    assert "1주 전" not in out
+    assert "1개월 전" not in out
+
+
+def test_fear_greed_block_empty():
+    assert "데이터 없음" in macro.fear_greed_block({})
+
+
+def test_fear_greed_interpret_thresholds():
+    assert "극단적 공포" in macro._fg_interpret(10)
+    assert "공포 (25-45)" in macro._fg_interpret(30)
+    assert "중립" in macro._fg_interpret(50)
+    assert "탐욕 (55-75)" in macro._fg_interpret(65)
+    assert "극단적 탐욕" in macro._fg_interpret(80)

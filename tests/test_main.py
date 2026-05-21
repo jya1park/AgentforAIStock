@@ -136,6 +136,10 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
                         lambda: {"y3m": 4.20, "y10y": 4.45, "y30y": 4.60,
                                  "y10y_7d_bp": -8.0, "y30y_7d_bp": -10.0,
                                  "spread_10y_3m_bp": 25.0, "curve": "평탄화 (0-50bp)"})
+    monkeypatch.setattr(main, "fetch_fear_greed",
+                        lambda: {"score": 62.0, "rating": "greed", "rating_kr": "탐욕",
+                                 "previous_close": 58.0, "previous_1_week": 55.0,
+                                 "previous_1_month": 42.0, "previous_1_year": 50.0})
     monkeypatch.setattr(main, "call_agent", fake_call_agent)
     monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
     telegram_calls = []
@@ -155,6 +159,9 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "VIX: 14.50" in calls[0]["input"]  # vix signal injected
     assert "10Y: 4.45%" in calls[0]["input"]  # yields signal injected
     assert "+25.0bp" in calls[0]["input"]  # spread shown
+    assert "Fear & Greed Index" in calls[0]["input"]  # F&G block injected
+    assert "62.0 → 탐욕" in calls[0]["input"]  # current F&G value + Korean rating
+    assert "1개월 전 42.0" in calls[0]["input"]  # F&G trend shown
     assert "도메인 thesis" in calls[0]["input"]  # ontology thesis injected
     assert "hardware.ai_dc_operator" in calls[0]["input"]
     assert "# 입력 페이로드" in calls[1]["input"]
