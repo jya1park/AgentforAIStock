@@ -143,9 +143,10 @@ def test_yields_block_empty():
     assert "데이터 없음" in yields_block({})
 
 
-def _fg_response(payload):
+def _fg_response(payload, status_code=200, text=""):
     fake = MagicMock()
-    fake.raise_for_status.return_value = None
+    fake.status_code = status_code
+    fake.text = text or (str(payload) if payload else "")
     fake.json.return_value = payload
     return fake
 
@@ -172,7 +173,20 @@ def test_fetch_fear_greed_happy_path(monkeypatch, tmp_path):
     assert out["rating"] == "neutral"
     assert out["rating_kr"] == "중립"
     assert out["previous_1_month"] == 38.9
-    assert "Mozilla" in captured["headers"]["User-Agent"]
+
+
+def test_fetch_fear_greed_sends_full_browser_headers(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    captured = {}
+    def fake_get(url, headers, timeout):
+        captured["headers"] = headers
+        return _fg_response({"fear_and_greed": {"score": 50, "rating": "neutral"}})
+    monkeypatch.setattr(requests, "get", fake_get)
+    fetch_fear_greed()
+    assert "Chrome" in captured["headers"]["User-Agent"]
+    assert captured["headers"]["Accept"] == "application/json, text/plain, */*"
+    assert captured["headers"]["Origin"] == "https://www.cnn.com"
+    assert captured["headers"]["Referer"] == "https://www.cnn.com/"
 
 
 def test_fetch_fear_greed_korean_rating_mapping(monkeypatch, tmp_path):
@@ -185,6 +199,22 @@ def test_fetch_fear_greed_korean_rating_mapping(monkeypatch, tmp_path):
     assert fetch_fear_greed()["rating_kr"] == "극단적 탐욕"
 
 
+def test_fetch_fear_greed_falls_back_to_historical_when_snapshot_missing(monkeypatch, tmp_path):
+    """If CNN drops the 'fear_and_greed' snapshot field, use the latest historical point."""
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    # 30-day series; latest is the last entry
+    hist = [{"x": 1700000000000 + i * 86400000, "y": 30.0 + i, "rating": "fear"} for i in range(30)]
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response({
+        "fear_and_greed_historical": {"data": hist}
+    }))
+    out = fetch_fear_greed()
+    assert out["score"] == 59.0  # 30 + 29
+    assert out["rating"] == "fear"
+    assert out["previous_close"] == 58.0  # second-to-last
+    assert out["previous_1_week"] == 54.0  # data[-6]
+    assert out["previous_1_month"] == 39.0  # data[-21]
+
+
 def test_fetch_fear_greed_returns_empty_on_network_error(monkeypatch, tmp_path):
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
     def boom(*a, **kw): raise requests.ConnectionError()
@@ -192,9 +222,16 @@ def test_fetch_fear_greed_returns_empty_on_network_error(monkeypatch, tmp_path):
     assert fetch_fear_greed() == {}
 
 
-def test_fetch_fear_greed_returns_empty_on_missing_score(monkeypatch, tmp_path):
+def test_fetch_fear_greed_returns_empty_on_http_403(monkeypatch, tmp_path, capsys):
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
-    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response({"fear_and_greed": {}}))
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response(None, status_code=403, text="Host not in allowlist"))
+    assert fetch_fear_greed() == {}
+    assert "HTTP 403" in capsys.readouterr().out
+
+
+def test_fetch_fear_greed_returns_empty_when_no_snapshot_or_historical(monkeypatch, tmp_path):
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: _fg_response({"unrelated": "shape"}))
     assert fetch_fear_greed() == {}
 
 

@@ -122,6 +122,15 @@ def yields_block(y: dict) -> str:
 
 
 _FG_URL = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+_FG_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json, text/plain, */*",
+    "Origin": "https://www.cnn.com",
+    "Referer": "https://www.cnn.com/",
+}
 _FG_RATING_KR = {
     "extreme fear": "극단적 공포",
     "fear": "공포",
@@ -131,29 +140,60 @@ _FG_RATING_KR = {
 }
 
 
+def _round_or_none(v) -> float | None:
+    return round(float(v), 1) if v is not None else None
+
+
 def fetch_fear_greed(today: date | None = None) -> dict:
     """CNN Fear & Greed Index — current 0-100 score, rating, and trend snapshot.
-    Returns empty {} on network or schema error (unofficial endpoint can change)."""
+    Returns empty {} on network or schema error (unofficial endpoint can change).
+    Prints diagnostic on failure so the operator can see why it fell through."""
     today = today or date.today()
     cache_path = CACHE_DIR / f"fear_greed_{today.isoformat()}.json"
     if cache_path.exists():
         return json.loads(cache_path.read_text())
+
     try:
-        r = requests.get(_FG_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-        r.raise_for_status()
-        fg = r.json().get("fear_and_greed", {})
-    except (requests.RequestException, ValueError):
+        r = requests.get(_FG_URL, headers=_FG_HEADERS, timeout=10)
+    except requests.RequestException as e:
+        print(f"fear_greed: network error — {type(e).__name__}: {e}")
         return {}
+    if r.status_code != 200:
+        print(f"fear_greed: HTTP {r.status_code} — {r.text[:200]}")
+        return {}
+    try:
+        body = r.json()
+    except ValueError as e:
+        print(f"fear_greed: JSON parse error — {e}; first 200 bytes: {r.text[:200]}")
+        return {}
+
+    fg = body.get("fear_and_greed") or {}
     if "score" not in fg:
-        return {}
+        hist = (body.get("fear_and_greed_historical") or {})
+        data = hist.get("data") or []
+        latest = data[-1] if data else None
+        if latest and "y" in latest:
+            fg = {
+                "score": latest["y"],
+                "rating": latest.get("rating", hist.get("rating", "")),
+                "previous_close": data[-2]["y"] if len(data) >= 2 else None,
+                "previous_1_week": data[-6]["y"] if len(data) >= 6 else None,
+                "previous_1_month": data[-21]["y"] if len(data) >= 21 else None,
+                "previous_1_year": data[0]["y"] if len(data) >= 250 else None,
+            }
+        else:
+            print(f"fear_greed: schema mismatch — top-level keys: {list(body.keys())[:5]}")
+            return {}
+
+    rating = (fg.get("rating") or "").lower()
     out = {
         "score": round(float(fg["score"]), 1),
-        "rating": fg.get("rating", ""),
-        "rating_kr": _FG_RATING_KR.get(fg.get("rating", "").lower(), fg.get("rating", "")),
-        "previous_close": round(float(fg["previous_close"]), 1) if fg.get("previous_close") is not None else None,
-        "previous_1_week": round(float(fg["previous_1_week"]), 1) if fg.get("previous_1_week") is not None else None,
-        "previous_1_month": round(float(fg["previous_1_month"]), 1) if fg.get("previous_1_month") is not None else None,
-        "previous_1_year": round(float(fg["previous_1_year"]), 1) if fg.get("previous_1_year") is not None else None,
+        "rating": rating,
+        "rating_kr": _FG_RATING_KR.get(rating, rating),
+        "previous_close": _round_or_none(fg.get("previous_close")),
+        "previous_1_week": _round_or_none(fg.get("previous_1_week")),
+        "previous_1_month": _round_or_none(fg.get("previous_1_month")),
+        "previous_1_year": _round_or_none(fg.get("previous_1_year")),
     }
     cache_path.write_text(json.dumps(out))
     return out
