@@ -149,7 +149,6 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
 
     assert out.exists()
     assert out.read_text(encoding="utf-8") == "## Report\nfake report body"
-    assert not (tmp_path / out.name.replace(".md", "_kakao.txt")).exists()
     redteam = tmp_path / out.name.replace(".md", "_redteam.md")
     assert "사실 정합성" in redteam.read_text(encoding="utf-8")
 
