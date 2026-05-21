@@ -19,22 +19,22 @@ from evals import generators, graders, judges
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
 
-def run_stock_analyst_evals(n: int, model: str = "gpt-4o") -> list[dict]:
-    """Generate N payload variants, run stock-analyst on each, grade results."""
-    variants = generators.perturb_payloads(n=n, model=model)
+def run_stock_analyst_evals(n: int, gen_model: str, judge_model: str) -> list[dict]:
+    """Generate N payload variants, run stock-analyst (production gpt-4o), Claude-judge."""
+    variants = generators.perturb_payloads(n=n, model=gen_model)
     results = []
     for v in variants:
         payload = v["payload"]
         print(f"  [stock-analyst] {v['id']}...")
         try:
-            raw = call_agent("stock-analyst", f"mode=morning\n\n{payload}", model=model)
+            raw = call_agent("stock-analyst", f"mode=morning\n\n{payload}", model=gen_model)
             output = _extract_long_body(raw)
         except Exception as e:
             results.append({"id": v["id"], "error": str(e)})
             continue
         rule_grade = graders.grade_stock_analyst(payload, output)
         try:
-            llm_grade = judges.judge_stock_analyst(payload, output, model=model)
+            llm_grade = judges.judge_stock_analyst(payload, output, model=judge_model)
         except Exception as e:
             llm_grade = {"error": str(e)}
         results.append({
@@ -47,9 +47,9 @@ def run_stock_analyst_evals(n: int, model: str = "gpt-4o") -> list[dict]:
     return results
 
 
-def run_chat_evals(n: int, model: str = "gpt-4o") -> list[dict]:
-    """Generate N chat questions, run chat-assistant on each, grade results."""
-    questions = generators.perturb_questions(n=n, model=model)
+def run_chat_evals(n: int, gen_model: str, judge_model: str) -> list[dict]:
+    """Generate N chat questions, run chat-assistant (production gpt-4o), Claude-judge."""
+    questions = generators.perturb_questions(n=n, model=gen_model)
     results = []
     for q in questions:
         print(f"  [chat] {q['id']} ({q['category']})...")
@@ -64,7 +64,7 @@ def run_chat_evals(n: int, model: str = "gpt-4o") -> list[dict]:
             rule_grade["refusal"] = graders.grade_chat_refusal(q["text"], reply)
 
         try:
-            llm_grade = judges.judge_chat_answer(q["text"], "(report context omitted in eval)", reply, model=model)
+            llm_grade = judges.judge_chat_answer(q["text"], "(report context omitted in eval)", reply, model=judge_model)
         except Exception as e:
             llm_grade = {"error": str(e)}
 
@@ -126,25 +126,26 @@ def main() -> None:
     p.add_argument("--round", type=int, required=True)
     p.add_argument("--n-payloads", type=int, default=10)
     p.add_argument("--n-questions", type=int, default=30)
-    p.add_argument("--model", default="gpt-4o")
+    p.add_argument("--gen-model", default="gpt-4o", help="OpenAI model for generation + production responses")
+    p.add_argument("--judge-model", default="claude-sonnet-4-6", help="Claude model for qualitative judging")
     p.add_argument("--skip-stock", action="store_true")
     p.add_argument("--skip-chat", action="store_true")
     args = p.parse_args()
 
-    print(f"=== Round {args.round} ===")
+    print(f"=== Round {args.round} (gen={args.gen_model}, judge={args.judge_model}) ===")
     stock_results, chat_results = [], []
     stock_summary, chat_summary = {}, {}
 
     if not args.skip_stock:
         print(f"Stock-analyst evals (n={args.n_payloads})...")
-        stock_results = run_stock_analyst_evals(args.n_payloads, model=args.model)
+        stock_results = run_stock_analyst_evals(args.n_payloads, args.gen_model, args.judge_model)
         stock_summary = aggregate(stock_results, "stock")
         print(f"  means: {stock_summary['means']}")
         print(f"  failures: {len(stock_summary['failures'])}")
 
     if not args.skip_chat:
         print(f"Chat-assistant evals (n={args.n_questions})...")
-        chat_results = run_chat_evals(args.n_questions, model=args.model)
+        chat_results = run_chat_evals(args.n_questions, args.gen_model, args.judge_model)
         chat_summary = aggregate(chat_results, "chat")
         print(f"  means: {chat_summary['means']}")
         print(f"  failures: {len(chat_summary['failures'])}")

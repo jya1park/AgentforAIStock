@@ -1,8 +1,11 @@
-"""LLM-as-judge for qualitative grading dimensions that rules can't easily capture."""
+"""LLM-as-judge using Claude (separates eval model from production gpt-4o)."""
 
 import json
+import re
 
-from openai import OpenAI
+from anthropic import Anthropic
+
+DEFAULT_JUDGE_MODEL = "claude-sonnet-4-6"
 
 _ANALYST_JUDGE_PROMPT = """You evaluate a Korean stock-analysis LLM's output against its input payload.
 
@@ -14,7 +17,7 @@ Score each dimension 1-5 (5 = perfect):
 
 Also list up to 3 specific issues you noticed.
 
-Return JSON: {{"cross_check_clarity": N, "evidence_grounding": N, "tone_consistency": N, "thesis_usage": N, "issues": ["..."]}}
+Return JSON only (no markdown, no prose): {{"cross_check_clarity": N, "evidence_grounding": N, "tone_consistency": N, "thesis_usage": N, "issues": ["..."]}}
 
 PAYLOAD:
 ---
@@ -41,25 +44,34 @@ Score 1-5:
 
 List up to 3 issues.
 
-Return JSON: {{"answer_relevance": N, "grounding": N, "format": N, "refusal_appropriateness": N, "issues": ["..."]}}"""
+Return JSON only (no markdown, no prose): {{"answer_relevance": N, "grounding": N, "format": N, "refusal_appropriateness": N, "issues": ["..."]}}"""
 
 
-def judge_stock_analyst(payload: str, output: str, model: str = "gpt-4o") -> dict:
-    """LLM-judge the qualitative dimensions of a stock-analyst output."""
-    resp = OpenAI().chat.completions.create(
+def _extract_json(text: str) -> dict:
+    """Claude sometimes wraps JSON in ```json fences; strip if present."""
+    m = re.search(r"\{.*\}", text, re.DOTALL)
+    if not m:
+        raise ValueError(f"no JSON object in response: {text[:200]}")
+    return json.loads(m.group(0))
+
+
+def _call_claude(prompt: str, model: str, max_tokens: int = 1024) -> dict:
+    resp = Anthropic().messages.create(
         model=model,
-        messages=[{"role": "user", "content": _ANALYST_JUDGE_PROMPT.format(payload=payload[:6000], output=output[:4000])}],
-        response_format={"type": "json_object"},
+        max_tokens=max_tokens,
+        messages=[{"role": "user", "content": prompt}],
     )
-    return json.loads(resp.choices[0].message.content)
+    return _extract_json(resp.content[0].text)
 
 
-def judge_chat_answer(question: str, context: str, answer: str, model: str = "gpt-4o") -> dict:
-    """LLM-judge a chat-assistant answer."""
-    resp = OpenAI().chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": _CHAT_JUDGE_PROMPT.format(
-            question=question, context=context[:3000], answer=answer[:2000])}],
-        response_format={"type": "json_object"},
+def judge_stock_analyst(payload: str, output: str, model: str = DEFAULT_JUDGE_MODEL) -> dict:
+    """Claude-judge the qualitative dimensions of a stock-analyst output."""
+    return _call_claude(_ANALYST_JUDGE_PROMPT.format(payload=payload[:6000], output=output[:4000]), model)
+
+
+def judge_chat_answer(question: str, context: str, answer: str, model: str = DEFAULT_JUDGE_MODEL) -> dict:
+    """Claude-judge a chat-assistant answer."""
+    return _call_claude(
+        _CHAT_JUDGE_PROMPT.format(question=question, context=context[:3000], answer=answer[:2000]),
+        model,
     )
-    return json.loads(resp.choices[0].message.content)
