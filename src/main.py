@@ -38,9 +38,16 @@ def _filter_by_mode(tickers: list[str], mode: str) -> list[str]:
 
 
 def _extract_long_body(raw: str) -> str:
-    """Extract body inside ```long_markdown ... ``` fence. Fallback: whole text."""
+    """Extract body inside ```long_markdown ... ``` fence. Fallback: whole text.
+    Strip auto-generated trailing disclaimer sections (## 면책 / ## Disclaimer / etc) —
+    LLM sometimes adds them despite the prompt rule, so we cut anything after 시나리오."""
     m = re.search(r"```long_markdown\s*\n(.*?)```", raw, re.DOTALL)
-    return m.group(1).strip() if m else raw.strip()
+    body = m.group(1).strip() if m else raw.strip()
+    body = re.sub(
+        r"\n##\s+(면책|Disclaimer|Risk Warning|주의사항|Caution)\b.*\Z",
+        "", body, flags=re.DOTALL | re.IGNORECASE,
+    )
+    return body.strip()
 
 
 def _age_label(now: datetime, dt: datetime) -> str:

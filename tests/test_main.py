@@ -36,6 +36,22 @@ def test_extract_long_body_falls_back_when_no_fence():
     assert _extract_long_body("no fences here, just text") == "no fences here, just text"
 
 
+def test_extract_long_body_strips_korean_disclaimer():
+    raw = "```long_markdown\n## 시나리오\nbody\n\n## 면책\n참고용 분석, 투자 결정은 본인 책임.\n```"
+    assert _extract_long_body(raw) == "## 시나리오\nbody"
+
+
+def test_extract_long_body_strips_english_disclaimer():
+    raw = "```long_markdown\n## 시나리오\nbody\n\n## Disclaimer\nNot investment advice.\n```"
+    assert _extract_long_body(raw) == "## 시나리오\nbody"
+
+
+def test_extract_long_body_keeps_non_trailing_section():
+    """A section that isn't at the end shouldn't be stripped."""
+    raw = "```long_markdown\n# Header\nintro\n\n## 시나리오\nbody\n```"
+    assert "시나리오" in _extract_long_body(raw)
+
+
 def test_thesis_block_renders_entries():
     out = _thesis_block([
         {"path": "hardware.ai_dc_operator", "thesis": "capex 700B"},
