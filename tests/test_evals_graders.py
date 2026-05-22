@@ -74,10 +74,10 @@ def test_grade_fg_arithmetic_passes_when_direction_right():
     assert result["score"] == 1.0
 
 
-def test_grade_three_signal_integration_passes_when_one_sentence_covers_all():
+def test_grade_signal_integration_full_four(monkeypatch):
     output = """## 시장 분위기 총평
-VIX 17.4 정상 + F&G 60.9 탐욕 + 정상 곡선 +101bp — 세 시그널 위험 자산 선호로 정렬.
-나머지 분석은 광부품에 후행 확산 지연.
+VIX 17.4 정상 + F&G 60.9 탐욕 + 정상 곡선 +101bp + narrow rally (SOXX +5% vs SPY -2%) — 4중 시그널 거품 진입 정렬.
+광부품 후행 확산 지연.
 
 ## 시장 요약
 ok"""
@@ -85,16 +85,28 @@ ok"""
     assert result["score"] == 1.0
 
 
-def test_grade_three_signal_integration_fails_when_listed_separately():
-    """The 20260521 first-run failure: each signal in its own sentence."""
+def test_grade_signal_integration_partial_three_of_four():
+    """3 of 4 signals → 0.75 (no breadth)."""
+    output = """## 시장 분위기 총평
+VIX 17.4 + F&G 60.9 + 정상 곡선 +101bp — 거시 정렬.
+나머지 분석.
+
+## 시장 요약
+ok"""
+    result = grade_three_signal_integration(output)
+    assert result["score"] == 0.75
+
+
+def test_grade_signal_integration_listed_separately_scores_quarter():
+    """Each signal in its own sentence → best=1 → score=0.25 (failure flag still set)."""
     output = """## 시장 분위기 총평
 VIX는 17.4로 정상 범위에 있습니다. F&G는 60.9로 탐욕 구간입니다. 곡선은 +101bp로 정상입니다.
 
 ## 시장 요약
 ok"""
     result = grade_three_signal_integration(output)
-    assert result["score"] == 0.0
-    assert any("listed separately" in f for f in result["failures"])
+    assert result["score"] == 0.25
+    assert any("only 1/4" in f for f in result["failures"])
 
 
 def test_grade_hallucination_flags_unknown_company():

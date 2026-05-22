@@ -12,9 +12,10 @@ _QUESTIONS_PATH = _SEEDS_DIR / "questions.json"
 _PAYLOAD_PERTURB_PROMPT = """You are generating eval payloads to stress-test a Korean stock analyst LLM.
 
 Given the baseline payload below, produce {n} variants. Each variant must:
-- Preserve the exact section structure (## Macro 시그널 / ### 국채 금리 / ### Fear & Greed Index / ## 도메인 thesis / ## Segment Rollup / ## Top Movers / ## ETF 비교 / ## Headlines (top movers))
+- Preserve the exact section structure (## Macro 시그널 / ### 국채 금리 / ### Fear & Greed Index / ### 시장 폭 / ## 도메인 thesis / ## Segment Rollup / ## Top Movers / ## ETF 비교 / ## Headlines (top movers))
 - Vary the numeric values plausibly: VIX 10-35, F&G 0-100, yields 1-7%, change_pct -20 to +25
-- Mix the macro regime: some variants should have VIX/F&G/curve aligned (all risk-on or all risk-off), others should have them in conflict
+- For ### 시장 폭: vary SOXX 5d/20d and SPY 5d/20d returns, compute spread = SOXX - SPY. Mix regimes: ~30% extreme narrow (SPY negative + SOXX positive + spread > 7%p), ~30% broad (|spread| < 3%p), rest narrow or tech-rotation
+- Mix the macro regime: some variants should have VIX/F&G/curve/breadth aligned (all risk-on or all risk-off), others should have them in conflict
 - Vary the Top Movers list — different tickers from this universe: NVDA, AMD, INTC, MU, ARM, POET, LSCC, IONQ, RGTI, AAOI, LITE, MSFT, GOOGL, META, GEV, VRT, XLU, AVGO, AMZN, 005930.KS, 000660.KS, 042700.KQ
 - For each ticker in Top Movers, write 0-2 headlines that genuinely mention THAT ticker's company name. Do NOT mix headlines across tickers.
 - Inject deliberate trap cases in ~30% of variants:

@@ -17,6 +17,12 @@
 - 추세 — 전일 58.0 / 1주 전 55.0 / 1개월 전 42.0 / 1년 전 50.0
 - 구간 가이드: 극단적 공포 0-25 / 공포 25-45 / 중립 45-55 / 탐욕 55-75 / 극단적 탐욕 75-100
 
+### 시장 폭 (Breadth — 자금 집중도, 기술 vs 광의 시장)
+- 5일: 기술(SOXX) +5.20% vs 시장(SPY) -2.10% (스프레드 +7.30%p)
+- 20일: 기술(SOXX) +12.40% vs 시장(SPY) +1.80% (스프레드 +10.60%p)
+- 해석 (5일): extreme narrow rally (기술 강세) — 시장 전반 약세 + 자금 기술주 집중, 과열 진입 시그널
+- 가이드: |스프레드| <3%p broad / 3-7%p narrow / >7%p extreme narrow. 시장 음수 + 스프레드 양수 = 거품 진입 시그널.
+
 ## 도메인 thesis (ontology — 거품·강세 판단 참고)
 - **hardware.ai_dc_operator**: 2026년 합산 capex ~$700B, 75%가 AI 관련. capex 사이클은 전력·HBM·광부품으로 후행 확산.
 - **hardware.semiconductor_compute**: GPU/AI 가속기. capex thesis 직접 수혜.

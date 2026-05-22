@@ -93,8 +93,9 @@ def grade_fg_trend_arithmetic(payload: str, output: str) -> dict:
     return {"score": score, "failures": failures, "checked": len(expected)}
 
 
-def grade_three_signal_integration(output: str) -> dict:
-    """Verdict sentence must mention VIX, F&G, and curve/yield together."""
+def grade_signal_integration(output: str) -> dict:
+    """Verdict sentence must integrate VIX + F&G + curve + breadth (4 signals).
+    Partial credit: 0.25 per signal in the same sentence, max 1.0."""
     summary_m = re.search(r"##\s*시장 분위기 총평\s*$(.*?)(?=^##\s)", output, re.DOTALL | re.MULTILINE)
     if not summary_m:
         return {"score": 0.0, "failures": ["No '시장 분위기 총평' section found"], "checked": 0}
@@ -103,20 +104,28 @@ def grade_three_signal_integration(output: str) -> dict:
     sentences = [s.strip() for s in re.split(r"(?<=[.다요])\s+", summary) if s.strip()]
     failures: list[str] = []
 
-    integrated = False
+    best_count = 0
     for s in sentences:
-        has_vix = "VIX" in s
-        has_fg = "F&G" in s or "Fear" in s or "탐욕" in s or "공포" in s
-        has_curve = "곡선" in s or "스프레드" in s or "bp" in s
-        if has_vix and has_fg and has_curve:
-            integrated = True
-            break
+        signals = sum([
+            "VIX" in s,
+            ("F&G" in s or "Fear" in s or "탐욕" in s or "공포" in s),
+            ("곡선" in s or "스프레드 10Y" in s or "10Y-3M" in s or "bp" in s),
+            ("SOXX" in s or "SPY" in s or "narrow" in s or "broad" in s or "시장 폭" in s),
+        ])
+        best_count = max(best_count, signals)
 
-    if not integrated:
-        failures.append("No single sentence mentions VIX, F&G, and curve together (signals listed separately)")
+    if best_count < 4:
+        failures.append(
+            f"Best sentence integrates only {best_count}/4 signals (VIX, F&G, curve, breadth). "
+            "Want one sentence with all four + verdict."
+        )
 
-    score = 1.0 if integrated else 0.0
-    return {"score": score, "failures": failures, "checked": 1}
+    score = best_count / 4.0
+    return {"score": round(score, 2), "failures": failures, "checked": 1}
+
+
+# Backward-compat alias for existing code paths
+grade_three_signal_integration = grade_signal_integration
 
 
 def grade_hallucination(payload: str, output: str) -> dict:
@@ -124,9 +133,17 @@ def grade_hallucination(payload: str, output: str) -> dict:
     _TOKEN = r"\b[A-Z][a-zA-Z]+\b"
     payload_words = set(re.findall(_TOKEN, payload))
     output_companies = set(re.findall(_TOKEN, output))
-    ALLOWED = {"AI", "ETF", "GPU", "HBM", "CPU", "VIX", "Fear", "Greed", "Index",
-               "Q1", "Q2", "Q3", "Q4", "Daily", "Market", "Snapshot", "Macro",
-               "Top", "Movers", "Headlines", "Segment", "Rollup", "Report"}
+    ALLOWED = {
+        "AI", "ETF", "GPU", "HBM", "CPU", "VIX", "Fear", "Greed", "Index",
+        "Q1", "Q2", "Q3", "Q4", "Daily", "Market", "Snapshot", "Macro",
+        "Top", "Movers", "Headlines", "Segment", "Rollup", "Report",
+        # ontology / macro vocabulary the analyst is instructed to cite
+        "SOXX", "SPY", "AIQ", "DTCR", "QQQ", "XLU", "RSP", "IWM",
+        "Capex", "Fabless", "Optical", "Semiconductor", "Memory",
+        "Breadth", "Rally", "Narrow", "Broad",
+        "Bernstein", "Baird", "Reuters", "Bloomberg", "TechCrunch",
+        "Insider", "Monkey", "Motley", "Fool", "Simply", "Wall", "Street", "Journal", "CNBC",
+    }
 
     suspect = [w for w in output_companies if w not in ALLOWED and w not in payload_words]
     score = 1.0 if not suspect else max(0.0, 1.0 - 0.2 * len(suspect))
