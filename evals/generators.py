@@ -14,7 +14,7 @@ _PAYLOAD_PERTURB_PROMPT = """You are generating eval payloads to stress-test a K
 Given the baseline payload below, produce {n} variants. Each variant must:
 - Preserve the exact section structure (## Macro 시그널 / ### 국채 금리 / ### Fear & Greed Index / ### 시장 폭 / ## 도메인 thesis / ## Segment Rollup / ## Top Movers / ## ETF 비교 / ## Headlines (top movers))
 - Vary the numeric values plausibly: VIX 10-35, F&G 0-100, yields 1-7%, change_pct -20 to +25
-- For ### 시장 폭: vary Nasdaq 100 advance count (out of 100) and Dow 30 advance count (out of 30) for both 1d and 5d. Format: "나스닥 100 {N}/{total} 상승 ({pct}%) vs 다우 30 {N}/{total} 상승 ({pct}%, {dec}개 하락) — A/D 스프레드 {spread}%p". Mix regimes: ~30% extreme narrow (dow advance < 40 + spread > +15%p), ~30% broad (|spread| < 5%p), rest narrow or money-rotation (spread negative + dow advance > 60)
+- For ### 시장 폭: vary Nasdaq 100 advance count (0-100) and Dow 30 advance count (0-30) for both 1d and 5d windows. Format example with concrete numbers: "1일: 나스닥 100 72/100 상승 (72.0%) vs 다우 30 10/30 상승 (33.3%, 20개 하락) — A/D 스프레드 +38.7%p". Mix regimes: ~30% extreme narrow (dow advance < 40 + spread > +15%p), ~30% broad (|spread| < 5%p), rest narrow or money-rotation (spread negative + dow advance > 60)
 - Mix the macro regime: some variants should have VIX/F&G/curve/breadth aligned (all risk-on or all risk-off), others should have them in conflict
 - Vary the Top Movers list — different tickers from this universe: NVDA, AMD, INTC, MU, ARM, POET, LSCC, IONQ, RGTI, AAOI, LITE, MSFT, GOOGL, META, GEV, VRT, XLU, AVGO, AMZN, 005930.KS, 000660.KS, 042700.KQ
 - For each ticker in Top Movers, write 0-2 headlines that genuinely mention THAT ticker's company name. Do NOT mix headlines across tickers.
