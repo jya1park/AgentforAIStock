@@ -45,6 +45,24 @@ def test_judge_chat_answer_parses_response(monkeypatch):
     assert result["issues"] == []
 
 
+def test_judge_chat_prompt_mentions_tool_environment(monkeypatch):
+    """Judge must be told about the 4 live tools so tool-derived numbers aren't penalized."""
+    captured = {}
+    fake_client = MagicMock()
+    def fake_create(model, max_tokens, messages):
+        captured["prompt"] = messages[0]["content"]
+        return _claude_text_response('{"answer_relevance": 5, "grounding": 5, "format": 5, "refusal_appropriateness": 5, "issues": []}')
+    fake_client.messages.create = fake_create
+    monkeypatch.setattr(judges, "Anthropic", lambda: fake_client)
+
+    judges.judge_chat_answer("NVDA PER?", "report excerpt", "PER 65배")
+    assert "get_ticker_info" in captured["prompt"]
+    assert "get_financials" in captured["prompt"]
+    assert "get_fear_greed" in captured["prompt"]
+    assert "get_market_breadth" in captured["prompt"]
+    assert "tool-result" in captured["prompt"].lower() or "tool result" in captured["prompt"].lower()
+
+
 def test_extract_json_handles_fenced_response():
     """Claude sometimes wraps JSON in ```json``` even when told not to."""
     fenced = '```json\n{"answer_relevance": 4, "issues": []}\n```'
