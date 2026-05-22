@@ -1,7 +1,7 @@
 # Daily Market Snapshot
 
 ## 시장 분위기 총평
-VIX 17.44 정상 + Fear & Greed 60.9 탐욕 (1개월 전 42 → +18.9점 공포→탐욕 전환) + 정상 곡선 +101.0bp + extreme narrow rally (SOXX +5.20% vs SPY -2.10%, 스프레드 +7.30%p) — 4중 시그널 거품 진입 정렬, 단기 위험 자산 과매수 경고. `hardware.ai_dc_operator`의 capex $700B thesis 강세 + 광부품(AAOI -3.54%, optical_transceiver +2.11%로 평균 미만)·전력(XLU +0.38%) 약세 — 후행 확산 지연 확인.
+VIX 17.44 정상 + Fear & Greed 60.9 탐욕 (1개월 전 42 → +18.9점 공포→탐욕 전환) + 정상 곡선 +101.0bp + extreme narrow rally (나스닥 advance 72% vs 다우 advance 33%, A/D 스프레드 +39%p — 비기술주 20개 하락) — 4중 시그널 거품 진입 정렬, 단기 위험 자산 과매수 경고. `hardware.ai_dc_operator`의 capex $700B thesis 강세 + 광부품(AAOI -3.54%, optical_transceiver +2.11%로 평균 미만)·전력(XLU +0.38%) 약세 — 후행 확산 지연 확인.
 
 ## 시장 요약
 ARM과 POET이 각각 +15.05%와 +13.08%로 강세를 보였습니다. IONQ 역시 +8.32%로 상승하며 emerging_compute 부문에서 두각을 나타냈으나, NVDA와의 동조 강도가 자금 이동보다는 전체 시장 강세에 가깝습니다.

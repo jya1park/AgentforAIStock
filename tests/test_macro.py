@@ -289,94 +289,112 @@ def test_fear_greed_interpret_thresholds():
 
 
 def test_interpret_breadth_broad():
-    assert "broad" in macro._interpret_breadth(spread_pp=2.0, market_pct=1.5)
-    assert "broad" in macro._interpret_breadth(spread_pp=-2.5, market_pct=-1.0)
+    """|spread| < 5%p → broad regardless of dow advance %."""
+    assert "broad" in macro._interpret_breadth(spread_pp=3.0, dow_advance_pct=55)
+    assert "broad" in macro._interpret_breadth(spread_pp=-4.0, dow_advance_pct=45)
 
 
-def test_interpret_breadth_narrow_rally_market_down():
-    """Tech up while market down — the bubble-entry signal."""
-    out = macro._interpret_breadth(spread_pp=5.0, market_pct=-2.0)
+def test_interpret_breadth_narrow_rally_dow_weak():
+    """Nasdaq leading + Dow advance <40% → bubble-entry."""
+    out = macro._interpret_breadth(spread_pp=12.0, dow_advance_pct=30)
     assert "narrow rally" in out
     assert "기술 강세" in out
-    assert "거품 진입" in out or "과열" in out
+    assert "거품 진입" in out
 
 
-def test_interpret_breadth_extreme_narrow_market_down():
-    out = macro._interpret_breadth(spread_pp=8.5, market_pct=-1.5)
+def test_interpret_breadth_extreme_narrow_dow_weak():
+    out = macro._interpret_breadth(spread_pp=20.0, dow_advance_pct=25)
     assert "extreme narrow" in out
+    assert "거품 진입" in out
 
 
-def test_interpret_breadth_tech_lagging_market_rising():
-    """Market up while tech down — money rotation away from tech."""
-    out = macro._interpret_breadth(spread_pp=-4.0, market_pct=2.0)
+def test_interpret_breadth_money_rotation_away_from_tech():
+    """Nasdaq lagging + Dow advance >60% → money flowing out of tech."""
+    out = macro._interpret_breadth(spread_pp=-15.0, dow_advance_pct=70)
     assert "기술 약세" in out
     assert "차익실현" in out or "자금 이동" in out
 
 
-def test_fetch_breadth_computes_5d_and_20d(monkeypatch, tmp_path):
+def test_fetch_breadth_counts_advances(monkeypatch, tmp_path):
+    """Verify advance counting across nasdaq + dow constituents."""
+    import pandas as pd
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
-    # Build 25-day series; index -1 is today, -6 is 5d ago, -21 is 20d ago
-    soxx_closes = [100 + i * 0.5 for i in range(25)]  # gentle upward
-    soxx_closes[-1] = 115.0  # final pop → 5d/20d both positive
-    spy_closes = [400 + i * -0.2 for i in range(25)]
-    spy_closes[-1] = 392.0
+    fake_tickers = {"nasdaq100": ["A", "B", "C"], "dow30": ["D", "E"]}
+    monkeypatch.setattr(macro, "_load_breadth_tickers", lambda: fake_tickers)
 
-    def make_ticker(sym):
-        m = MagicMock()
-        closes = soxx_closes if sym == "SOXX" else spy_closes
-        m.history.return_value = pd.DataFrame({"Close": closes})
-        return m
-    monkeypatch.setattr(macro.yf, "Ticker", make_ticker)
+    # 10-day series: A/B/D up over 1d (-2 → -1), C/E flat
+    closes = {
+        "A": [100, 100, 100, 100, 100, 100, 100, 100, 100, 110],  # +10% 1d, +10% 5d
+        "B": [100, 100, 100, 100, 100, 100, 100, 100, 100, 105],  # up
+        "C": [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],  # flat → not advance
+        "D": [100, 100, 100, 100, 100, 100, 100, 100, 100, 102],  # up
+        "E": [100, 100, 100, 100, 100, 100, 100, 100, 100, 99],   # down
+    }
+    df = pd.DataFrame({sym: closes[sym] for sym in closes})
+    multi = pd.concat({sym: pd.DataFrame({"Close": closes[sym]}) for sym in closes}, axis=1)
+    monkeypatch.setattr(macro.yf, "download", lambda *a, **kw: multi)
 
     out = macro.fetch_breadth()
-    assert "tech_5d_pct" in out and "market_5d_pct" in out
-    assert "spread_5d_pp" in out and "spread_20d_pp" in out
-    assert out["spread_5d_pp"] == round(out["tech_5d_pct"] - out["market_5d_pct"], 2)
+    assert out["nasdaq_advances_1d"] == 2  # A, B
+    assert out["nasdaq_total_1d"] == 3
+    assert out["nasdaq_advance_pct_1d"] == round(2/3 * 100, 1)
+    assert out["dow_advances_1d"] == 1  # D
+    assert out["dow_total_1d"] == 2
+    assert out["dow_advance_pct_1d"] == 50.0
+    assert out["ad_spread_1d_pp"] == round(out["nasdaq_advance_pct_1d"] - 50.0, 1)
     assert "interpretation" in out
 
 
-def test_fetch_breadth_returns_empty_on_short_history(monkeypatch, tmp_path):
+def test_fetch_breadth_returns_empty_on_yf_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
-    m = MagicMock()
-    m.history.return_value = pd.DataFrame({"Close": [100.0, 101.0]})  # only 2 days
-    monkeypatch.setattr(macro.yf, "Ticker", lambda s: m)
+    def boom(*a, **kw): raise RuntimeError("net")
+    monkeypatch.setattr(macro.yf, "download", boom)
     assert macro.fetch_breadth() == {}
 
 
-def test_fetch_breadth_returns_empty_on_exception(monkeypatch, tmp_path):
+def test_fetch_breadth_returns_empty_on_no_data(monkeypatch, tmp_path):
+    import pandas as pd
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
-    def boom(s): raise RuntimeError("net")
-    monkeypatch.setattr(macro.yf, "Ticker", boom)
+    monkeypatch.setattr(macro, "_load_breadth_tickers",
+                        lambda: {"nasdaq100": ["X"], "dow30": ["Y"]})
+    monkeypatch.setattr(macro.yf, "download", lambda *a, **kw: pd.DataFrame())
     assert macro.fetch_breadth() == {}
 
 
 def test_fetch_breadth_caches_per_day(monkeypatch, tmp_path):
+    import pandas as pd
     monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(macro, "_load_breadth_tickers",
+                        lambda: {"nasdaq100": ["A"], "dow30": ["B"]})
+    closes = {"A": [100] * 9 + [105], "B": [100] * 9 + [102]}
+    multi = pd.concat({sym: pd.DataFrame({"Close": closes[sym]}) for sym in closes}, axis=1)
     calls = {"n": 0}
-    closes = [100 + i for i in range(25)]
-    def make_ticker(s):
+    def fake_dl(*a, **kw):
         calls["n"] += 1
-        m = MagicMock()
-        m.history.return_value = pd.DataFrame({"Close": closes})
-        return m
-    monkeypatch.setattr(macro.yf, "Ticker", make_ticker)
+        return multi
+    monkeypatch.setattr(macro.yf, "download", fake_dl)
     macro.fetch_breadth()
     macro.fetch_breadth()
-    assert calls["n"] == 2  # 2 tickers fetched once; second call hits cache
+    assert calls["n"] == 1  # second hits cache
 
 
-def test_breadth_block_renders_5d_20d_spread_interpretation():
+def test_breadth_block_renders_advance_counts():
     b = {
-        "tech_5d_pct": 5.20, "market_5d_pct": -2.10, "spread_5d_pp": 7.30,
-        "tech_20d_pct": 12.40, "market_20d_pct": 1.80, "spread_20d_pp": 10.60,
-        "interpretation": "extreme narrow rally (기술 강세) — 시장 전반 약세 + 자금 기술주 집중, 과열 진입 시그널",
+        "nasdaq_advances_1d": 72, "nasdaq_total_1d": 100, "nasdaq_advance_pct_1d": 72.0,
+        "dow_advances_1d": 10, "dow_total_1d": 30, "dow_advance_pct_1d": 33.3,
+        "nasdaq_advances_5d": 65, "nasdaq_total_5d": 100, "nasdaq_advance_pct_5d": 65.0,
+        "dow_advances_5d": 11, "dow_total_5d": 30, "dow_advance_pct_5d": 36.7,
+        "ad_spread_1d_pp": 38.7, "ad_spread_5d_pp": 28.3,
+        "interpretation": "extreme narrow rally (기술 강세) — 거품 진입 시그널",
     }
     out = macro.breadth_block(b)
-    assert "시장 폭" in out
-    assert "SOXX" in out and "+5.20%" in out
-    assert "SPY" in out and "-2.10%" in out
-    assert "+7.30%p" in out
-    assert "20일" in out
+    assert "Advance/Decline" in out
+    assert "나스닥 100" in out and "72" in out and "72.0%" in out
+    assert "다우 30" in out and "10/30" in out and "33.3%" in out
+    assert "20개 하락" in out  # 30 - 10 = 20
+    assert "+38.7%p" in out
+    assert "5일" in out
+    assert "+28.3%p" in out
     assert "extreme narrow" in out
     assert "가이드" in out
 

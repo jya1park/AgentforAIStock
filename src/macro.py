@@ -5,9 +5,11 @@ from datetime import date
 from pathlib import Path
 
 import requests
+import yaml
 import yfinance as yf
 
 CACHE_DIR = Path("/tmp")
+_BREADTH_TICKERS_PATH = Path(__file__).resolve().parent.parent / "data" / "breadth_tickers.yaml"
 
 
 def _interpret(vix: float) -> str:
@@ -228,65 +230,110 @@ def fear_greed_block(fg: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-_BREADTH_TICKERS = {"tech": "SOXX", "market": "SPY"}
+def _load_breadth_tickers() -> dict:
+    return yaml.safe_load(_BREADTH_TICKERS_PATH.read_text(encoding="utf-8"))
 
 
-def _interpret_breadth(spread_pp: float, market_pct: float) -> str:
-    """Map (5d tech-market spread, 5d market return) to a regime label."""
+def _interpret_breadth(spread_pp: float, dow_advance_pct: float) -> str:
+    """Map (Nasdaq-Dow advance spread, Dow advance %) to a regime label.
+    spread > 0 = tech leading, dow_advance_pct < 40 = broad market weak."""
     abs_s = abs(spread_pp)
-    if abs_s < 3:
-        return "broad — 자금 분산, 건강한 흐름"
-    direction = "기술 강세" if spread_pp > 0 else "기술 약세"
-    if market_pct < 0 and spread_pp > 0:
-        severity = "extreme narrow" if abs_s > 7 else "narrow"
-        return f"{severity} rally ({direction}) — 시장 전반 약세 + 자금 기술주 집중, 과열 진입 시그널"
-    if market_pct > 0 and spread_pp < 0:
-        return f"기술 약세, 자금 이동 — 광의 시장만 상승, AI/반도체 차익실현 가능성"
-    if abs_s > 7:
-        return f"extreme narrow ({direction}) — 양극화 심화, 단기 추세 반전 위험"
-    return f"narrow ({direction})"
+    if abs_s < 5:
+        return "broad — 자금 분산, 시장 폭 건강"
+    if spread_pp > 0 and dow_advance_pct < 40:
+        severity = "extreme narrow" if abs_s > 15 else "narrow"
+        return f"{severity} rally (기술 강세) — 비기술주 약세 + 자금 기술주 집중, 거품 진입 시그널"
+    if spread_pp > 0:
+        severity = "extreme narrow" if abs_s > 15 else "narrow"
+        return f"{severity} (기술 강세) — 시장 폭 양극화, 단기 추세 반전 위험"
+    if spread_pp < 0 and dow_advance_pct > 60:
+        return "기술 약세, 자금 이동 — 비기술주 폭 강세, AI/반도체 차익실현 가능성"
+    return f"narrow ({'기술 강세' if spread_pp > 0 else '기술 약세'})"
+
+
+def _advance_pct(close_now, close_then) -> tuple[int, int, float]:
+    """Given two close Series aligned by ticker, return (advances, total, advance_pct)."""
+    valid = close_now.notna() & close_then.notna() & (close_then != 0)
+    n_valid = int(valid.sum())
+    if n_valid == 0:
+        return 0, 0, 0.0
+    diff = (close_now[valid] / close_then[valid] - 1) > 0
+    advances = int(diff.sum())
+    return advances, n_valid, round(advances / n_valid * 100, 1)
 
 
 def fetch_breadth(today: date | None = None) -> dict:
-    """Tech (SOXX) vs broad market (SPY) — 5d/20d returns + spread.
-    Returns {} if either ticker fails or history too short."""
+    """Nasdaq 100 vs Dow 30 advance/decline breadth — count-based, not return-based.
+    Returns {} if yfinance fails or history < 6 days. Cached per day."""
     today = today or date.today()
     cache_path = CACHE_DIR / f"breadth_{today.isoformat()}.json"
     if cache_path.exists():
         return json.loads(cache_path.read_text())
 
-    out: dict = {}
-    for key, sym in _BREADTH_TICKERS.items():
-        try:
-            hist = yf.Ticker(sym).history(period="35d")
-        except Exception:
-            return {}
-        if hist.empty or len(hist) < 21:
-            return {}
-        close = hist["Close"]
-        out[f"{key}_5d_pct"] = round((close.iloc[-1] / close.iloc[-6] - 1) * 100, 2)
-        out[f"{key}_20d_pct"] = round((close.iloc[-1] / close.iloc[-21] - 1) * 100, 2)
+    tickers = _load_breadth_tickers()
+    all_syms = list(set(tickers["nasdaq100"] + tickers["dow30"]))
+    try:
+        hist = yf.download(" ".join(all_syms), period="10d", group_by="ticker",
+                           auto_adjust=False, progress=False, threads=True)
+    except Exception:
+        return {}
+    if hist is None or hist.empty:
+        return {}
 
-    out["spread_5d_pp"] = round(out["tech_5d_pct"] - out["market_5d_pct"], 2)
-    out["spread_20d_pp"] = round(out["tech_20d_pct"] - out["market_20d_pct"], 2)
-    out["interpretation"] = _interpret_breadth(out["spread_5d_pp"], out["market_5d_pct"])
+    def closes_for(syms: list[str], col_offset: int) -> tuple[int, int, float]:
+        import pandas as pd
+        latest, prior = [], []
+        for sym in syms:
+            try:
+                series = hist[sym]["Close"].dropna()
+            except KeyError:
+                continue
+            if len(series) < abs(col_offset) + 1:
+                continue
+            latest.append(series.iloc[-1])
+            prior.append(series.iloc[col_offset])
+        if not latest:
+            return 0, 0, 0.0
+        return _advance_pct(pd.Series(latest), pd.Series(prior))
+
+    ndx_adv_1d, ndx_tot_1d, ndx_pct_1d = closes_for(tickers["nasdaq100"], -2)
+    dow_adv_1d, dow_tot_1d, dow_pct_1d = closes_for(tickers["dow30"], -2)
+    ndx_adv_5d, ndx_tot_5d, ndx_pct_5d = closes_for(tickers["nasdaq100"], -6)
+    dow_adv_5d, dow_tot_5d, dow_pct_5d = closes_for(tickers["dow30"], -6)
+
+    if ndx_tot_1d == 0 or dow_tot_1d == 0:
+        return {}
+
+    out = {
+        "nasdaq_advances_1d": ndx_adv_1d, "nasdaq_total_1d": ndx_tot_1d, "nasdaq_advance_pct_1d": ndx_pct_1d,
+        "dow_advances_1d": dow_adv_1d, "dow_total_1d": dow_tot_1d, "dow_advance_pct_1d": dow_pct_1d,
+        "nasdaq_advances_5d": ndx_adv_5d, "nasdaq_total_5d": ndx_tot_5d, "nasdaq_advance_pct_5d": ndx_pct_5d,
+        "dow_advances_5d": dow_adv_5d, "dow_total_5d": dow_tot_5d, "dow_advance_pct_5d": dow_pct_5d,
+        "ad_spread_1d_pp": round(ndx_pct_1d - dow_pct_1d, 1),
+        "ad_spread_5d_pp": round(ndx_pct_5d - dow_pct_5d, 1),
+    }
+    out["interpretation"] = _interpret_breadth(out["ad_spread_1d_pp"], out["dow_advance_pct_1d"])
     cache_path.write_text(json.dumps(out))
     return out
 
 
 def breadth_block(b: dict) -> str:
-    """Render breadth for the daily-report payload."""
+    """Render advance/decline breadth for the daily-report payload."""
     if not b:
         return "### 시장 폭 (Breadth)\n- 데이터 없음\n"
-    lines = ["### 시장 폭 (Breadth — 자금 집중도, 기술 vs 광의 시장)"]
+    lines = ["### 시장 폭 (Breadth — Advance/Decline 종목 수 기반, 금액 영향 제거)"]
     lines.append(
-        f"- 5일: 기술(SOXX) {b['tech_5d_pct']:+.2f}% vs 시장(SPY) {b['market_5d_pct']:+.2f}% "
-        f"(스프레드 {b['spread_5d_pp']:+.2f}%p)"
+        f"- 1일: 나스닥 100 {b['nasdaq_advances_1d']}/{b['nasdaq_total_1d']} 상승 ({b['nasdaq_advance_pct_1d']}%) "
+        f"vs 다우 30 {b['dow_advances_1d']}/{b['dow_total_1d']} 상승 ({b['dow_advance_pct_1d']}%, "
+        f"{b['dow_total_1d']-b['dow_advances_1d']}개 하락) — A/D 스프레드 {b['ad_spread_1d_pp']:+.1f}%p"
     )
     lines.append(
-        f"- 20일: 기술(SOXX) {b['tech_20d_pct']:+.2f}% vs 시장(SPY) {b['market_20d_pct']:+.2f}% "
-        f"(스프레드 {b['spread_20d_pp']:+.2f}%p)"
+        f"- 5일: 나스닥 advance {b['nasdaq_advance_pct_5d']}% vs 다우 advance {b['dow_advance_pct_5d']}% "
+        f"(스프레드 {b['ad_spread_5d_pp']:+.1f}%p)"
     )
-    lines.append(f"- 해석 (5일): {b['interpretation']}")
-    lines.append("- 가이드: |스프레드| <3%p broad / 3-7%p narrow / >7%p extreme narrow. 시장 음수 + 스프레드 양수 = 거품 진입 시그널.")
+    lines.append(f"- 해석 (1일 기준): {b['interpretation']}")
+    lines.append(
+        "- 가이드: |A/D 스프레드| <5%p broad / 5-15%p narrow / >15%p extreme narrow. "
+        "다우 advance <40% + 스프레드 양수 = 거품 진입 (비기술주 약세 + 자금 기술주 집중)."
+    )
     return "\n".join(lines) + "\n"

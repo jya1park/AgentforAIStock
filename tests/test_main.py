@@ -141,9 +141,12 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
                                  "previous_close": 58.0, "previous_1_week": 55.0,
                                  "previous_1_month": 42.0, "previous_1_year": 50.0})
     monkeypatch.setattr(main, "fetch_breadth",
-                        lambda: {"tech_5d_pct": 5.20, "market_5d_pct": -2.10, "spread_5d_pp": 7.30,
-                                 "tech_20d_pct": 12.40, "market_20d_pct": 1.80, "spread_20d_pp": 10.60,
-                                 "interpretation": "extreme narrow rally (기술 강세) — 과열 진입 시그널"})
+                        lambda: {"nasdaq_advances_1d": 72, "nasdaq_total_1d": 100, "nasdaq_advance_pct_1d": 72.0,
+                                 "dow_advances_1d": 10, "dow_total_1d": 30, "dow_advance_pct_1d": 33.3,
+                                 "nasdaq_advances_5d": 65, "nasdaq_total_5d": 100, "nasdaq_advance_pct_5d": 65.0,
+                                 "dow_advances_5d": 11, "dow_total_5d": 30, "dow_advance_pct_5d": 36.7,
+                                 "ad_spread_1d_pp": 38.7, "ad_spread_5d_pp": 28.3,
+                                 "interpretation": "extreme narrow rally (기술 강세) — 거품 진입 시그널"})
     monkeypatch.setattr(main, "call_agent", fake_call_agent)
     monkeypatch.setattr(main, "REPORTS_DIR", tmp_path)
     telegram_calls = []
@@ -166,9 +169,9 @@ def test_main_e2e_with_mocks(monkeypatch, tmp_path):
     assert "62.0 → 탐욕" in calls[0]["input"]  # current F&G value + Korean rating
     assert "1개월 전 42.0" in calls[0]["input"]  # F&G trend shown
     assert "시장 폭" in calls[0]["input"]  # breadth block injected
-    assert "+5.20%" in calls[0]["input"] and "SOXX" in calls[0]["input"]  # breadth tech leg
-    assert "-2.10%" in calls[0]["input"] and "SPY" in calls[0]["input"]  # breadth market leg
-    assert "+7.30%p" in calls[0]["input"]  # 5d spread shown
+    assert "나스닥 100" in calls[0]["input"] and "72.0%" in calls[0]["input"]  # nasdaq advance leg
+    assert "다우 30" in calls[0]["input"] and "33.3%" in calls[0]["input"]  # dow advance leg
+    assert "+38.7%p" in calls[0]["input"]  # 1d A/D spread shown
     assert "도메인 thesis" in calls[0]["input"]  # ontology thesis injected
     assert "hardware.ai_dc_operator" in calls[0]["input"]
     assert "# 입력 페이로드" in calls[1]["input"]
