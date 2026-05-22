@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+import json
 import pandas as pd
 import pytest
 import requests
@@ -401,3 +402,23 @@ def test_breadth_block_renders_advance_counts():
 
 def test_breadth_block_empty():
     assert "데이터 없음" in macro.breadth_block({})
+
+
+def test_fetch_breadth_invalidates_stale_schema_cache(monkeypatch, tmp_path, capsys):
+    """A cache file from the old SOXX/SPY schema must be refetched, not returned as-is."""
+    import pandas as pd
+    monkeypatch.setattr(macro, "CACHE_DIR", tmp_path)
+    today = pd.Timestamp("2026-05-22").date()
+    cache_path = tmp_path / f"breadth_{today.isoformat()}.json"
+    cache_path.write_text(json.dumps({"tech_5d_pct": 5.2, "market_5d_pct": -2.1}), encoding="utf-8")
+
+    monkeypatch.setattr(macro, "_load_breadth_tickers",
+                        lambda: {"nasdaq100": ["A"], "dow30": ["B"]})
+    closes = {"A": [100]*9 + [110], "B": [100]*9 + [99]}
+    multi = pd.concat({sym: pd.DataFrame({"Close": closes[sym]}) for sym in closes}, axis=1)
+    monkeypatch.setattr(macro.yf, "download", lambda *a, **kw: multi)
+
+    out = macro.fetch_breadth(today=today)
+    assert "nasdaq_advances_1d" in out  # refetched in new schema
+    assert "tech_5d_pct" not in out
+    assert "stale cache" in capsys.readouterr().out

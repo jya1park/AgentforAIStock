@@ -264,20 +264,33 @@ def _advance_pct(close_now, close_then) -> tuple[int, int, float]:
 
 def fetch_breadth(today: date | None = None) -> dict:
     """Nasdaq 100 vs Dow 30 advance/decline breadth — count-based, not return-based.
-    Returns {} if yfinance fails or history < 6 days. Cached per day."""
+    Returns {} if yfinance fails or history < 6 days. Cached per day.
+    Stale-schema caches (pre-2026-05 SOXX/SPY format) are auto-refetched."""
     today = today or date.today()
     cache_path = CACHE_DIR / f"breadth_{today.isoformat()}.json"
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        try:
+            cached = json.loads(cache_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            cached = {}
+        if "nasdaq_advances_1d" in cached:
+            return cached
+        print("breadth: stale cache schema, refetching")
+        try:
+            cache_path.unlink()
+        except OSError:
+            pass
 
     tickers = _load_breadth_tickers()
     all_syms = list(set(tickers["nasdaq100"] + tickers["dow30"]))
     try:
         hist = yf.download(" ".join(all_syms), period="10d", group_by="ticker",
                            auto_adjust=False, progress=False, threads=True)
-    except Exception:
+    except Exception as e:
+        print(f"breadth: yf.download error — {type(e).__name__}: {e}")
         return {}
     if hist is None or hist.empty:
+        print("breadth: yf.download returned empty DataFrame")
         return {}
 
     def closes_for(syms: list[str], col_offset: int) -> tuple[int, int, float]:
@@ -286,7 +299,7 @@ def fetch_breadth(today: date | None = None) -> dict:
         for sym in syms:
             try:
                 series = hist[sym]["Close"].dropna()
-            except KeyError:
+            except (KeyError, AttributeError):
                 continue
             if len(series) < abs(col_offset) + 1:
                 continue
@@ -302,6 +315,7 @@ def fetch_breadth(today: date | None = None) -> dict:
     dow_adv_5d, dow_tot_5d, dow_pct_5d = closes_for(tickers["dow30"], -6)
 
     if ndx_tot_1d == 0 or dow_tot_1d == 0:
+        print(f"breadth: insufficient data — nasdaq_tot={ndx_tot_1d}, dow_tot={dow_tot_1d}")
         return {}
 
     out = {
