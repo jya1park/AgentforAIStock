@@ -62,6 +62,66 @@ def _revert_to(commit_hash: str) -> None:
     _git("reset", "--hard", commit_hash)
 
 
+def _select_best(history: list[dict], skip: bool = False) -> None:
+    """Find the highest-scoring round, reset to its prompt state, and write a summary.
+    Writes evals/patches/best_round.md so the user can see which round won and the full ranking."""
+    if not history:
+        print("=== best-of: no rounds completed ===")
+        return
+    best = max(history, key=lambda x: x["score"])
+    ranked = sorted(history, key=lambda x: x["score"], reverse=True)
+
+    print(f"\n=== Best round: R{best['round']} score={best['score']:.4f} commit={best['commit'][:8]} ===")
+    print("Ranking:")
+    for h in ranked:
+        marker = " ← best" if h is best else ""
+        print(f"  R{h['round']}: {h['score']:.4f}  {h['commit'][:8]}{marker}")
+
+    if skip:
+        print("  --no-select-best given; staying at current HEAD.")
+        return
+
+    current = _git("rev-parse", "HEAD")
+    if best["commit"] != current:
+        print(f"\nResetting from {current[:8]} to {best['commit'][:8]} (best round's prompt state)")
+        _revert_to(best["commit"])
+        _commit_best_summary(best, ranked)
+    else:
+        print("Already at best round's commit.")
+        _commit_best_summary(best, ranked)
+
+
+def _commit_best_summary(best: dict, ranked: list[dict]) -> None:
+    """Write evals/patches/best_round.md and commit it. Safe to call multiple times."""
+    from datetime import datetime
+    path = Path(__file__).resolve().parent / "patches" / "best_round.md"
+    path.parent.mkdir(exist_ok=True)
+    lines = [
+        f"# Best round summary",
+        f"_generated: {datetime.now().isoformat(timespec='seconds')}_",
+        "",
+        f"## Winner: Round {best['round']}",
+        f"- score: {best['score']:.4f}",
+        f"- commit: `{best['commit'][:8]}` (HEAD after reset)",
+        "",
+        "## Full ranking (this run only)",
+        "| Round | Score | Commit |",
+        "|---|---|---|",
+    ]
+    for h in ranked:
+        marker = " ← best" if h is best else ""
+        lines.append(f"| R{h['round']} | {h['score']:.4f} | `{h['commit'][:8]}`{marker} |")
+    path.write_text("\n".join(lines), encoding="utf-8")
+    try:
+        _git("add", str(path.relative_to(Path(__file__).resolve().parent.parent)))
+        status = _git("status", "--porcelain")
+        if status:
+            _git("commit", "-m", f"best-of: R{best['round']} selected (score {best['score']:.4f})")
+            print(f"  best_round.md committed.")
+    except subprocess.CalledProcessError:
+        pass  # already clean or no change
+
+
 def run_one_round(round_num: int, n_payloads: int, n_questions: int,
                   gen_model: str, judge_model: str) -> tuple[Path, dict]:
     """Run a single eval round. Returns (results_path, parsed_results)."""
@@ -90,6 +150,8 @@ def main() -> None:
     p.add_argument("--patcher-model", default="claude-opus-4-7")
     p.add_argument("--tolerance", type=float, default=0.05,
                    help="Max score drop allowed before rollback (overall, 0-1 scale)")
+    p.add_argument("--no-select-best", action="store_true",
+                   help="Skip final reset to the best-scoring round's prompt state.")
     args = p.parse_args()
 
     print(f"=== Auto-loop start: rounds {args.start_round}..{args.start_round + args.max_rounds - 1} ===")
@@ -97,11 +159,14 @@ def main() -> None:
 
     last_score = None
     last_pre_patch_commit = _git("rev-parse", "HEAD")
+    round_history: list[dict] = []
 
     for r in range(args.start_round, args.start_round + args.max_rounds):
+        round_start_commit = _git("rev-parse", "HEAD")
         path, results = run_one_round(r, args.n_payloads, args.n_questions,
                                        args.gen_model, args.judge_model)
         score = _overall_score(results)
+        round_history.append({"round": r, "commit": round_start_commit, "score": score})
         print(f"  → overall score: {score:.4f}")
 
         if last_score is not None and score < last_score - args.tolerance:
@@ -109,12 +174,14 @@ def main() -> None:
             print(f"  Rolling back to commit {last_pre_patch_commit[:8]}")
             _revert_to(last_pre_patch_commit)
             print(f"  Loop stopped. Inspect evals/patches/round_{r-1:03d}.md for the bad patch.")
+            _select_best(round_history, skip=args.no_select_best)
             return
 
         last_score = score
 
         if r == args.start_round + args.max_rounds - 1:
             print(f"=== Reached max-rounds ({args.max_rounds}); stopping without patching ===")
+            _select_best(round_history, skip=args.no_select_best)
             return
 
         # Patch + commit (pre-next-round)
