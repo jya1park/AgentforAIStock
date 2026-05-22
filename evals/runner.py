@@ -131,7 +131,7 @@ def main() -> None:
     p.add_argument("--round", type=int, required=True)
     p.add_argument("--n-payloads", type=int, default=10)
     p.add_argument("--n-questions", type=int, default=30)
-    p.add_argument("--gen-model", default="gpt-4o", help="OpenAI model for generation + production responses")
+    p.add_argument("--gen-model", default="gpt-5.4", help="OpenAI model for generation + production responses")
     p.add_argument("--judge-model", default="claude-sonnet-4-6", help="Claude model for qualitative judging")
     p.add_argument("--skip-stock", action="store_true")
     p.add_argument("--skip-chat", action="store_true")

@@ -46,7 +46,7 @@ Tickers should span: US (NVDA, TSLA, AAPL, JPM, BTC-USD), Korean (005930.KS, 000
 Output as JSON: {{"questions": [{{"id": "q01", "category": "tool_ticker_info", "text": "..."}}, ...]}}"""
 
 
-def perturb_payloads(n: int = 10, model: str = "gpt-4o") -> list[dict]:
+def perturb_payloads(n: int = 10, model: str = "gpt-5.4") -> list[dict]:
     """Generate N payload variants from the baseline seed."""
     baseline = _BASELINE_PATH.read_text(encoding="utf-8")
     prompt = _PAYLOAD_PERTURB_PROMPT.format(n=n, baseline=baseline)
@@ -58,7 +58,7 @@ def perturb_payloads(n: int = 10, model: str = "gpt-4o") -> list[dict]:
     return json.loads(resp.choices[0].message.content).get("variants", [])
 
 
-def perturb_questions(n: int = 30, model: str = "gpt-4o") -> list[dict]:
+def perturb_questions(n: int = 30, model: str = "gpt-5.4") -> list[dict]:
     """Generate N chatbot test questions."""
     resp = OpenAI().chat.completions.create(
         model=model,

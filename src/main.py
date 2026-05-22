@@ -115,14 +115,14 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
         + _news_section(headlines)
     )
     print("calling stock-analyst agent (gpt-4o)...")
-    raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-4o")
+    raw = call_agent("stock-analyst", f"mode={mode}\n\n{payload}", model="gpt-5.4")
     long_body = _extract_long_body(raw)
 
     print("calling red-team agent (gpt-4o) for fact-check...")
     review = call_agent(
         "red-team",
         f"# 입력 페이로드\n{payload}\n\n# 분석가 리포트\n{long_body}",
-        model="gpt-4o",
+        model="gpt-5.4",
     )
 
     REPORTS_DIR.mkdir(exist_ok=True)

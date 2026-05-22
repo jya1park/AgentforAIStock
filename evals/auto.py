@@ -145,7 +145,7 @@ def main() -> None:
     p.add_argument("--max-rounds", type=int, default=5)
     p.add_argument("--n-payloads", type=int, default=10)
     p.add_argument("--n-questions", type=int, default=30)
-    p.add_argument("--gen-model", default="gpt-4o")
+    p.add_argument("--gen-model", default="gpt-5.4")
     p.add_argument("--judge-model", default="claude-sonnet-4-6")
     p.add_argument("--patcher-model", default="claude-opus-4-7")
     p.add_argument("--tolerance", type=float, default=0.05,

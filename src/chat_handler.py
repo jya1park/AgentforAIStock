@@ -10,7 +10,7 @@ from src.macro import fetch_breadth, fetch_fear_greed
 from src.main import REPORTS_DIR, _thesis_block
 from src.ontology import Ontology
 
-MODEL = "gpt-4o"
+MODEL = "gpt-5.4"
 MAX_TOOL_ROUNDS = 3
 
 TOOLS = [

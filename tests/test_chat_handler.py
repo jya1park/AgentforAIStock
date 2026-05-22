@@ -51,7 +51,7 @@ def test_answer_returns_text_when_no_tool_call(monkeypatch, tmp_path):
     monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
     result = chat_handler.answer("오늘 시장 어때?")
     assert result == "단순 답변"
-    assert captured["model"] == "gpt-4o"
+    assert captured["model"] == "gpt-5.4"
     assert captured["tools_count"] == 4  # ticker_info, financials, fear_greed, market_breadth
     assert captured["messages"][-1] == {"role": "user", "content": "오늘 시장 어때?"}
 
