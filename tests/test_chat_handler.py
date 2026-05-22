@@ -130,3 +130,34 @@ def test_answer_gives_up_after_max_rounds(monkeypatch, tmp_path):
     monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
     result = chat_handler.answer("loop forever")
     assert "도구 호출이 너무 많아" in result
+
+
+def test_answer_uses_context_override_when_provided(monkeypatch, tmp_path):
+    """eval injects a fixed sample report via context_override; _build_context not called."""
+    monkeypatch.setattr(chat_handler, "REPORTS_DIR", tmp_path)  # empty, so _build_context would yield "(아직 ...)"
+    captured = {}
+    def fake_create(model, messages, tools):
+        captured["system"] = messages[0]["content"]
+        return _reply(content="ok")
+    fake_client = MagicMock()
+    fake_client.chat.completions.create = fake_create
+    monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
+
+    chat_handler.answer("질문", context_override="# 합성 리포트\nMY_UNIQUE_MARKER")
+    assert "MY_UNIQUE_MARKER" in captured["system"]
+    assert "아직 생성된 리포트가 없습니다" not in captured["system"]  # _build_context bypassed
+
+
+def test_answer_falls_back_to_build_context_when_no_override(monkeypatch, tmp_path):
+    """production path: no context_override → _build_context loads from REPORTS_DIR."""
+    monkeypatch.setattr(chat_handler, "REPORTS_DIR", tmp_path)
+    captured = {}
+    def fake_create(model, messages, tools):
+        captured["system"] = messages[0]["content"]
+        return _reply(content="ok")
+    fake_client = MagicMock()
+    fake_client.chat.completions.create = fake_create
+    monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
+
+    chat_handler.answer("질문")
+    assert "아직 생성된 리포트가 없습니다" in captured["system"]

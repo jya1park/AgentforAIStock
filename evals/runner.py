@@ -47,14 +47,19 @@ def run_stock_analyst_evals(n: int, gen_model: str, judge_model: str) -> list[di
     return results
 
 
+_SAMPLE_REPORT_PATH = Path(__file__).resolve().parent / "seeds" / "sample_report.md"
+
+
 def run_chat_evals(n: int, gen_model: str, judge_model: str) -> list[dict]:
-    """Generate N chat questions, run chat-assistant (production gpt-4o), Claude-judge."""
+    """Generate N chat questions, run chat-assistant with a fixed sample report context, Claude-judge.
+    Using a fixed context makes grounding measurable — judge sees the same report the model saw."""
+    sample_context = _SAMPLE_REPORT_PATH.read_text(encoding="utf-8")
     questions = generators.perturb_questions(n=n, model=gen_model)
     results = []
     for q in questions:
         print(f"  [chat] {q['id']} ({q['category']})...")
         try:
-            reply = chat_answer(q["text"])
+            reply = chat_answer(q["text"], context_override=sample_context)
         except Exception as e:
             results.append({"id": q["id"], "error": str(e)})
             continue
@@ -64,7 +69,7 @@ def run_chat_evals(n: int, gen_model: str, judge_model: str) -> list[dict]:
             rule_grade["refusal"] = graders.grade_chat_refusal(q["text"], reply)
 
         try:
-            llm_grade = judges.judge_chat_answer(q["text"], "(report context omitted in eval)", reply, model=judge_model)
+            llm_grade = judges.judge_chat_answer(q["text"], sample_context, reply, model=judge_model)
         except Exception as e:
             llm_grade = {"error": str(e)}
 

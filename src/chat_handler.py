@@ -124,9 +124,11 @@ def _run_tool(name: str, arguments_json: str) -> str:
         return json.dumps({"error": f"{type(e).__name__}: {e}"})
 
 
-def answer(question: str, history: list[dict] | None = None) -> str:
-    """Reply to question grounded in latest report + thesis, with multi-turn history and yfinance tools."""
-    system = load_agent_prompt("chat-assistant") + "\n\n" + _build_context()
+def answer(question: str, history: list[dict] | None = None, context_override: str | None = None) -> str:
+    """Reply to question grounded in latest report + thesis, with multi-turn history and yfinance tools.
+    context_override: if provided, use this string instead of loading the latest report — for eval reproducibility."""
+    context = context_override if context_override is not None else _build_context()
+    system = load_agent_prompt("chat-assistant") + "\n\n" + context
     messages = [{"role": "system", "content": system}]
     messages.extend(history or [])
     messages.append({"role": "user", "content": question})
