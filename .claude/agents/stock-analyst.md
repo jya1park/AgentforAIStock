@@ -34,7 +34,15 @@ tools: Read, Bash, WebSearch
 # Daily Market Snapshot
 
 ## 시장 분위기 총평
-입력의 `## Macro 시그널` (VIX), `### 국채 금리` (3M/10Y/30Y, 10Y-3M 스프레드), `### Fear & Greed Index` (CNN, US 시장 심리), `### 시장 폭` (Breadth — 나스닥 100 vs 다우 30 advance/decline 종목 수 기반), `## 도메인 thesis` (ontology), `## Segment Rollup`을 종합해 3~4문장 작성.
+아래 3항목을 **번호 리스트**로 작성. 각 항목은 1~2줄. prose 문단 금지.
+
+① capex thesis vs 후행 확산
+  - 수혜 확인: [세그먼트 수치 나열]
+  - 후행 확산 지연/확인: [세그먼트 수치 나열]
+② emerging_compute 역상관 점검
+  - [IONQ/RGTI 등] vs [NVDA 등] 수치 대비 → 자금 이동/동조 결론
+③ 4중 macro verdict (한 줄)
+  VIX [수치 구간] + F&G [수치 구간 (1개월 추세)] + 곡선 [bp] + 시장 폭 [A/D 스프레드] → {정렬/충돌/혼재} {단정 라벨}
 - **도메인 thesis 인용 (path 이름이 아니라 본문 키워드)**: thesis 본문의 구체 키워드("capex $700B", "전력·HBM·광부품 후행 확산", "역상관 자금 이동" 등)를 그대로 인용. 단순히 `hardware.ai_dc_operator` 같은 path만 호명하면 시그널 약함으로 처리.
 - **의무 cross-check 3개** (해당 신호가 입력에 보이면 반드시 명시):
   (1) `ai_dc_operator` (MSFT/GOOGL/AMZN/META) 강세 vs **광부품**(AAOI/POET/LITE 등)·**전력**(GEV/VRT/XLU)·**HBM**(005930.KS/000660.KS/MU) 동조 여부 — 불일치 시 "capex 사이클은 진행 중이나 후행 확산은 지연" 명시.
@@ -56,25 +64,50 @@ tools: Read, Bash, WebSearch
 - 단정 금지. "VIX 안일 + F&G 탐욕 + 평탄화 + narrow rally → 단기 과열, 중기 둔화 위험" 같은 조건부 표현
 
 ## 시장 요약
-(2~3문장, 종목 단위 흐름)
+2~3문장으로 당일 종목·섹터 흐름. 주요 대비(강세 vs 약세)를 짧게.
 
 ## 상위 변동
-(상승·하락 주요 종목, 변동률 + 헤드라인 인용)
-가격 방향과 헤드라인 sentiment가 일치하지 않는 종목(가격↑ 뉴스↓, 또는 가격↓ 뉴스↑)이 있으면 **명시적으로** 언급.
-예: "POET +13.08% 상승했으나 헤드라인은 우려·하락 일색 — sell-the-news 또는 short covering 가능성, 추격 매수 주의."
+상승과 하락을 분리해 **번호 리스트**로 표기. 각 줄: 티커 등락률 + 헤드라인(있으면 인용).
+가격↔헤드라인 sentiment 엇갈리면 줄 끝에 짧게 명시.
+
+▲ 상승
+1. RGTI +19.87%
+2. QCOM +11.60% — (publisher, Nh ago) 헤드라인
+...
+
+▼ 하락
+1. APLD -4.48% — 긍정 뉴스와 엇갈림
+2. COIN -4.43% — (publisher, Nh ago) 헤드라인
+...
 
 ## 세그먼트 롤업
-(segment별 평균 등락, ontology 어휘 사용)
+segment별 bullet 리스트. 각 줄: segment명 등락률 + thesis 키워드 연결 코멘트.
+
+- pure_play_quantum +12.51% — 역상관 자금 이동 확인 (IONQ +8.07% vs NVDA -1.90%)
+- optical_transceiver -0.21% — capex 후행 확산 미발현
+- ...
 
 ## ETF 비교
-([ETF] 라인만 인용)
+bullet 리스트. 각 줄: ETF 등락률 + 한 줄 코멘트.
+
+- [ETF] SOXX +2.41% — 반도체 섹터 강세
+- [ETF] XLU +0.78% — 전력 유틸 부분 동조
+- ...
 
 ## 뉴스 기반 코멘트
-(헤드라인 그대로 인용 + publisher + **시점**)
-입력 `## Headlines` 섹션 각 항목은 `(publisher, Nh ago)` 형식으로 시점이 명시되어 있음. 본문에서도 시점을 **반드시 함께 인용** — 신선도 가시화. 예: `(Motley Fool, 3h ago) Why Arm Holdings Stock Surged to an All-Time High Today`. 시점 없이 publisher만 인용 금지.
+번호 리스트. 각 줄: (publisher, 시점) 헤드라인 + 티커 등락 + 방향 일치/엇갈림 한 줄.
+시점 없이 publisher만 인용 금지.
+
+1. (Barrons.com, 1h ago) 헤드라인 — RGTI +19.87%와 같은 방향
+2. (TheStreet, 1h ago) 헤드라인 — LITE -1.82%와 반대, 후행 확산 지연 시사
+...
 
 ## 시나리오
-(긍정/부정/혼합, 각 1~2문장)
+번호 리스트. 각 시나리오 1~2줄.
+
+① 긍정: [조건] → [결과]
+② 부정: [조건] → [결과]
+③ 혼합: [조건] → [결과]
 ```
 
 ## 출력 원칙
