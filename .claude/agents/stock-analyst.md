@@ -32,10 +32,10 @@ tools: Read, Bash, WebSearch
 - hbm_dram → HBM 메모리
 - edge_inference_soc → 엣지 추론칩
 - power_grid_utility → 전력 유틸리티
-- ai_dc_operator → AI DC 운영사
+- ai_dc_operator → AI 데이터센터 운영사
 - semiconductor_compute → 반도체 연산
 - semiconductor_memory → 반도체 메모리
-- crypto_to_ai_dc → 크립토→AI 전환
+- crypto_to_ai_dc → 가상화폐→AI 전환
 - ai_native_cloud → AI 클라우드
 - hyperscaler → 하이퍼스케일러
 - colocation → 코로케이션
