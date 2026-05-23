@@ -42,7 +42,7 @@ tools: Read, Bash, WebSearch
 - epc_construction → 전력 EPC
 - power_equipment → 전력장비
 - switch_optical → 광스위치
-- retail_brokerage → 리테일 증권
+- retail_brokerage → 모바일 거래 플랫폼
 
 출력 예:
 - "양자컴퓨팅(pure_play_quantum) +12.51% — 리게티(RGTI) +19.87%, 아이온큐(IONQ) +8.07%"
