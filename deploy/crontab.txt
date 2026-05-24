@@ -1,0 +1,5 @@
+# AI Stock daily reports (KST timezone — set via timedatectl)
+# Morning: US market close → 08:00 KST (Mon-Fri)
+0 8 * * 1-5 cd /opt/aistock && /opt/aistock/venv/bin/python -m src.main morning >> /opt/aistock/logs/morning.log 2>&1
+# Evening: KR market close → 18:00 KST (Mon-Fri)
+0 18 * * 1-5 cd /opt/aistock && /opt/aistock/venv/bin/python -m src.main evening >> /opt/aistock/logs/evening.log 2>&1
