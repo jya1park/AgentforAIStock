@@ -98,6 +98,10 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
         return None
 
     analysis = analyze(df, ontology, etfs, top_n=top_n)
+
+    from src.segment_history import append as save_segments
+    save_segments(date.today(), analysis["segments"])
+
     mover_tickers = [r["ticker"] for r in analysis["top"] + analysis["bottom"]]
     stock_movers = [t for t in mover_tickers if t in ontology.all_tickers]
     print(f"fetching news for {len(stock_movers)} movers...")

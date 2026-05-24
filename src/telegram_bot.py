@@ -6,8 +6,8 @@ import sys
 import time
 
 from src import chat_memory, config  # noqa: F401 — triggers .env autoload
-from src.chat_handler import answer
-from src.telegram_notifier import get_updates, send_message
+from src.chat_handler import ChatResult, answer
+from src.telegram_notifier import get_updates, send_message, send_photo
 
 WELCOME = (
     "안녕하세요. AI 산업 일일 리포트를 자동 송출하고, 이 채팅의 질문에 GPT-4o로 답변합니다.\n\n"
@@ -45,14 +45,22 @@ def handle_message(msg: dict) -> None:
     print(f"q: {text}")
     history = chat_memory.load(chat_id)
     try:
-        reply = answer(text, history=history)
+        result = answer(text, history=history)
     except Exception as e:
         print(f"answer error: {e}")
         send_message("일시적 오류로 답변 생성 실패. 잠시 후 다시 시도해 주세요.", chat_id=chat_id)
         return
-    send_message(reply, chat_id=chat_id)
-    chat_memory.append(chat_id, text, reply)
-    print(f"a: ({len(reply)} chars, history={len(history) + 2})")
+    if isinstance(result, ChatResult):
+        send_message(result.text, chat_id=chat_id)
+        for img in result.images:
+            if img.exists():
+                send_photo(img, chat_id=chat_id)
+        chat_memory.append(chat_id, text, result.text)
+        print(f"a: ({len(result.text)} chars, {len(result.images)} images, history={len(history) + 2})")
+    else:
+        send_message(result, chat_id=chat_id)
+        chat_memory.append(chat_id, text, result)
+        print(f"a: ({len(result)} chars, history={len(history) + 2})")
 
 
 def main() -> None:

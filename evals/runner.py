@@ -59,7 +59,8 @@ def run_chat_evals(n: int, gen_model: str, judge_model: str) -> list[dict]:
     for q in questions:
         print(f"  [chat] {q['id']} ({q['category']})...")
         try:
-            reply = chat_answer(q["text"], context_override=sample_context)
+            result = chat_answer(q["text"], context_override=sample_context)
+            reply = result.text if hasattr(result, "text") else result
         except Exception as e:
             results.append({"id": q["id"], "error": str(e)})
             continue

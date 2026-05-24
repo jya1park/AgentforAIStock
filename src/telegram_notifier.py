@@ -45,6 +45,27 @@ def send_message(text: str, chat_id: str | None = None, bot_token: str | None = 
     return True
 
 
+def send_photo(image_path, chat_id: str | None = None, bot_token: str | None = None,
+               caption: str = "") -> bool:
+    """POST photo to Bot API sendPhoto. Returns True on 200."""
+    token = bot_token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat = chat_id or os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat:
+        return False
+    try:
+        with open(image_path, "rb") as f:
+            r = requests.post(
+                f"https://api.telegram.org/bot{token}/sendPhoto",
+                data={"chat_id": chat, "caption": caption},
+                files={"photo": f},
+                timeout=30,
+            )
+        r.raise_for_status()
+        return True
+    except (requests.RequestException, OSError):
+        return False
+
+
 def get_updates(offset: int | None = None, timeout: int = 25, bot_token: str | None = None) -> list[dict]:
     """Long-poll Bot API getUpdates. Returns list of update dicts; [] on missing token or error."""
     token = bot_token or os.environ.get("TELEGRAM_BOT_TOKEN", "")

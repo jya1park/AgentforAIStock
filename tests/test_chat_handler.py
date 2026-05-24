@@ -50,9 +50,9 @@ def test_answer_returns_text_when_no_tool_call(monkeypatch, tmp_path):
     fake_client.chat.completions.create = fake_create
     monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
     result = chat_handler.answer("오늘 시장 어때?")
-    assert result == "단순 답변"
+    assert result.text == "단순 답변"
     assert captured["model"] == "gpt-5.4"
-    assert captured["tools_count"] == 4  # ticker_info, financials, fear_greed, market_breadth
+    assert captured["tools_count"] == 5  # ticker_info, financials, segment_trend, fear_greed, market_breadth
     assert captured["messages"][-1] == {"role": "user", "content": "오늘 시장 어때?"}
 
 
@@ -79,7 +79,7 @@ def test_answer_executes_tool_call_and_returns_final_text(monkeypatch, tmp_path)
     fake_client.chat.completions.create = fake_create
     monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
     result = chat_handler.answer("NVDA PER 얼마야?")
-    assert result == "NVDA PER은 28.5배"
+    assert result.text == "NVDA PER은 28.5배"
     assert call_count["n"] == 2
 
 
@@ -129,7 +129,7 @@ def test_answer_gives_up_after_max_rounds(monkeypatch, tmp_path):
     fake_client.chat.completions.create = always_tool
     monkeypatch.setattr(chat_handler, "OpenAI", lambda: fake_client)
     result = chat_handler.answer("loop forever")
-    assert "도구 호출이 너무 많아" in result
+    assert "도구 호출이 너무 많아" in result.text
 
 
 def test_answer_uses_context_override_when_provided(monkeypatch, tmp_path):

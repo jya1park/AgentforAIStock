@@ -1,10 +1,13 @@
 """Multi-turn QA grounded in latest report + ontology thesis, with yfinance tool calls."""
 
 import json
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from openai import OpenAI
 
 from src.agents import load_agent_prompt
+from src.chart import generate_segment_trend
 from src.data_fetcher import fetch_financials, fetch_ticker_info
 from src.macro import fetch_breadth, fetch_fear_greed
 from src.main import REPORTS_DIR, _thesis_block
@@ -12,6 +15,12 @@ from src.ontology import Ontology
 
 MODEL = "gpt-5.4"
 MAX_TOOL_ROUNDS = 3
+
+
+@dataclass
+class ChatResult:
+    text: str
+    images: list[Path] = field(default_factory=list)
 
 TOOLS = [
     {
@@ -77,6 +86,23 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_segment_trend",
+            "description": (
+                "세그먼트별 일별 등락률 트렌드 차트 생성 (양자컴퓨팅, 광모듈, GPU 가속기 등). "
+                "최근 N일(기본 14) 라인 차트를 이미지로 생성합니다. "
+                "사용자가 '세그먼트 트렌드', '섹터 추이 차트', '최근 2주 세그먼트', '트렌드 그래프' 등 물을 때 호출."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "days": {"type": "integer", "description": "최근 N일 (기본 14)"},
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_market_breadth",
             "description": (
                 "Tech sector (SOXX) vs broad market (SPY S&P 500) returns over 5 and 20 days, with spread (%p). "
@@ -90,11 +116,20 @@ TOOLS = [
     },
 ]
 
+def _chart_segment_trend(days: int = 14) -> dict:
+    """Generate segment trend chart image. Returns {"chart_path": ..., "summary": ...} or {"error": ...}."""
+    path = generate_segment_trend(days=days)
+    if path:
+        return {"chart_path": str(path), "summary": f"세그먼트 트렌드 차트 ({days}일)를 생성했습니다."}
+    return {"error": "세그먼트 트렌드 데이터가 아직 충분하지 않습니다. morning 리포트를 며칠 더 실행해 주세요."}
+
+
 _TOOL_HANDLERS = {
     "get_ticker_info": fetch_ticker_info,
     "get_financials": fetch_financials,
     "get_fear_greed": fetch_fear_greed,
     "get_market_breadth": fetch_breadth,
+    "get_segment_trend": _chart_segment_trend,
 }
 
 
@@ -124,8 +159,9 @@ def _run_tool(name: str, arguments_json: str) -> str:
         return json.dumps({"error": f"{type(e).__name__}: {e}"})
 
 
-def answer(question: str, history: list[dict] | None = None, context_override: str | None = None) -> str:
+def answer(question: str, history: list[dict] | None = None, context_override: str | None = None) -> ChatResult:
     """Reply to question grounded in latest report + thesis, with multi-turn history and yfinance tools.
+    Returns ChatResult with text + optional image paths (for chart tools).
     context_override: if provided, use this string instead of loading the latest report — for eval reproducibility."""
     context = context_override if context_override is not None else _build_context()
     system = load_agent_prompt("chat-assistant") + "\n\n" + context
@@ -133,12 +169,13 @@ def answer(question: str, history: list[dict] | None = None, context_override: s
     messages.extend(history or [])
     messages.append({"role": "user", "content": question})
 
+    images: list[Path] = []
     client = OpenAI()
     for _ in range(MAX_TOOL_ROUNDS):
         resp = client.chat.completions.create(model=MODEL, messages=messages, tools=TOOLS)
         msg = resp.choices[0].message
         if not msg.tool_calls:
-            return msg.content or ""
+            return ChatResult(text=msg.content or "", images=images)
         messages.append({
             "role": "assistant",
             "content": msg.content,
@@ -148,9 +185,12 @@ def answer(question: str, history: list[dict] | None = None, context_override: s
             ],
         })
         for tc in msg.tool_calls:
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": _run_tool(tc.function.name, tc.function.arguments),
-            })
-    return "도구 호출이 너무 많아 답변을 완성하지 못했습니다. 질문을 다시 정리해 주세요."
+            tool_result = _run_tool(tc.function.name, tc.function.arguments)
+            messages.append({"role": "tool", "tool_call_id": tc.id, "content": tool_result})
+            try:
+                parsed = json.loads(tool_result)
+                if isinstance(parsed, dict) and "chart_path" in parsed:
+                    images.append(Path(parsed["chart_path"]))
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return ChatResult(text="도구 호출이 너무 많아 답변을 완성하지 못했습니다.", images=images)
