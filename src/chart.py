@@ -1,13 +1,22 @@
 """Generate chart images for Telegram — segment trends, etc."""
 
+import platform
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 import matplotlib.dates as mdates
 from datetime import datetime
 from pathlib import Path
 
 from src.segment_history import load_recent
+
+# Korean font: NanumGothic on Linux (apt install fonts-nanum), Malgun Gothic on Windows
+_KR_FONT = "NanumGothic" if platform.system() != "Windows" else "Malgun Gothic"
+if any(_KR_FONT == f.name for f in fm.fontManager.ttflist):
+    plt.rcParams["font.family"] = _KR_FONT
+plt.rcParams["axes.unicode_minus"] = False
 
 CHART_DIR = Path("/tmp")
 

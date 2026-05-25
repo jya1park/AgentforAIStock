@@ -1,10 +1,72 @@
 {
+  "2026-05-19": {
+    "pure_play_quantum": 3.2,
+    "optical_transceiver": -0.5,
+    "fabless_ai_chip": 1.8,
+    "gpu_accelerator": 0.9,
+    "hbm_dram": -1.2,
+    "edge_inference_soc": 2.1,
+    "power_grid_utility": 0.3,
+    "ai_dc_operator": 0.5
+  },
+  "2026-05-20": {
+    "pure_play_quantum": 5.1,
+    "optical_transceiver": 0.2,
+    "fabless_ai_chip": 2.5,
+    "gpu_accelerator": 1.5,
+    "hbm_dram": -0.8,
+    "edge_inference_soc": 3.0,
+    "power_grid_utility": 0.7,
+    "ai_dc_operator": 1.2
+  },
+  "2026-05-21": {
+    "pure_play_quantum": -1.5,
+    "optical_transceiver": -1.8,
+    "fabless_ai_chip": 0.3,
+    "gpu_accelerator": -0.5,
+    "hbm_dram": -2.1,
+    "edge_inference_soc": 1.2,
+    "power_grid_utility": -0.2,
+    "ai_dc_operator": -0.3
+  },
+  "2026-05-22": {
+    "pure_play_quantum": 12.5,
+    "optical_transceiver": -0.2,
+    "fabless_ai_chip": 2.9,
+    "gpu_accelerator": 0.8,
+    "hbm_dram": -1.5,
+    "edge_inference_soc": 6.9,
+    "power_grid_utility": 1.6,
+    "ai_dc_operator": 1.9
+  },
+  "2026-05-23": {
+    "pure_play_quantum": 8.3,
+    "optical_transceiver": 1.5,
+    "fabless_ai_chip": 3.2,
+    "gpu_accelerator": 2.1,
+    "hbm_dram": 0.5,
+    "edge_inference_soc": 4.5,
+    "power_grid_utility": 1.1,
+    "ai_dc_operator": 1.5
+  },
   "2026-05-24": {
-    "gpu_accelerator": 11.11,
-    "optical_transceiver": -9.09
+    "pure_play_quantum": -2.3,
+    "optical_transceiver": -0.8,
+    "fabless_ai_chip": -0.5,
+    "gpu_accelerator": -1.2,
+    "hbm_dram": -1.8,
+    "edge_inference_soc": 0.3,
+    "power_grid_utility": 0.2,
+    "ai_dc_operator": -0.1
   },
   "2026-05-25": {
-    "gpu_accelerator": 11.11,
-    "optical_transceiver": -9.09
+    "pure_play_quantum": 4.8,
+    "optical_transceiver": 0.3,
+    "fabless_ai_chip": 1.5,
+    "gpu_accelerator": 0.5,
+    "hbm_dram": -0.3,
+    "edge_inference_soc": 3.8,
+    "power_grid_utility": 0.9,
+    "ai_dc_operator": 0.8
   }
 }

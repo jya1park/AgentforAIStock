@@ -9,7 +9,7 @@ echo "=== AI Stock 서버 셋업 시작 ==="
 # 1. 시스템 패키지
 echo "[1/7] 시스템 패키지 설치..."
 sudo apt update -qq
-sudo apt install -y -qq python3 python3-pip python3-venv git
+sudo apt install -y -qq python3 python3-pip python3-venv git fonts-nanum
 
 # 2. 타임존 KST
 echo "[2/7] 타임존 Asia/Seoul 설정..."
