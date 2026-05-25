@@ -147,7 +147,16 @@ def main(mode: str, top_n: int = 10, per_ticker_news: int = 3) -> Path | None:
 
     if long_body:
         sent = send_message(long_body)
-        print(f"telegram: {'sent' if sent else 'skipped (no creds or network error)'}")
+        print(f"telegram text: {'sent' if sent else 'skipped'}")
+
+        from src.chart import generate_segment_trend
+        from src.telegram_notifier import send_photo
+        chart_path = generate_segment_trend(days=14)
+        if chart_path:
+            chart_sent = send_photo(chart_path, caption="세그먼트 트렌드 (최근 14일)")
+            print(f"telegram chart: {'sent' if chart_sent else 'skipped'}")
+        else:
+            print("telegram chart: skipped (데이터 2일 미만)")
 
     return out_md
 
