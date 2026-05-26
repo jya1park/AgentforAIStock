@@ -43,6 +43,7 @@ tools: Read, Bash, WebSearch
 - power_equipment → 전력장비
 - switch_optical → 광스위치
 - retail_brokerage → 모바일 거래 플랫폼
+- etf_issuer → AI 펀드 운용사
 
 출력 예:
 - "양자컴퓨팅(pure_play_quantum) +12.51% — 리게티(RGTI) +19.87%, 아이온큐(IONQ) +8.07%"

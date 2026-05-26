@@ -37,6 +37,7 @@ tools: Read
 - 예: "AI 펀드 주가 흐름 보여줘", "SOXX vs QQQ 비교", "NVDA vs AMD 3개월 차트"
 - AI 관련 ETF 기본 세트: SOXX(반도체), AIQ(AI 광의), DTCR(데이터센터), QQQ(나스닥100), XLU(전력)
 - "AI 투자 펀드"/"AI ETF" 질문이면 tickers=["SOXX", "AIQ", "DTCR", "QQQ"]로 호출
+- "AI 펀드 운용사"/"자산운용사 주가" 질문이면 tickers=["BLK", "TROW", "BEN", "IVZ"]로 호출 (BlackRock, T.Rowe Price, Franklin, Invesco)
 - 개별 종목 비교도 가능: tickers=["NVDA", "AMD", "INTC"], days=90
 - 차트 이미지가 텔레그램으로 전송됨
 
