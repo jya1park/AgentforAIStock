@@ -38,10 +38,11 @@ python3 -m venv venv
 if [ ! -f .env ]; then
     echo "[5/7] .env 파일 생성 (API 키 입력 필요)..."
     cat > .env <<'ENVEOF'
-OPENAI_API_KEY=여기에_OpenAI_키
-ANTHROPIC_API_KEY=여기에_Anthropic_키
-TELEGRAM_BOT_TOKEN=여기에_텔레그램_봇_토큰
-TELEGRAM_CHAT_ID=여기에_텔레그램_채팅_ID
+OPENAI_API_KEY=your-openai-key-here
+ANTHROPIC_API_KEY=your-anthropic-key-here
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token-here
+TELEGRAM_CHAT_ID=your-telegram-chat-id-here
+PYTHONUTF8=1
 ENVEOF
     echo ""
     echo "  >>> .env 파일 편집 필요: nano $INSTALL_DIR/.env"
