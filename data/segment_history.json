@@ -68,5 +68,9 @@
     "edge_inference_soc": 3.8,
     "power_grid_utility": 0.9,
     "ai_dc_operator": 0.8
+  },
+  "2026-05-26": {
+    "gpu_accelerator": 11.11,
+    "optical_transceiver": -9.09
   }
 }

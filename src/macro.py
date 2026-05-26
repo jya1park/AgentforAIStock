@@ -29,7 +29,7 @@ def fetch_vix(today: date | None = None) -> dict:
     today = today or date.today()
     cache_path = CACHE_DIR / f"vix_{today.isoformat()}.json"
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        return json.loads(cache_path.read_text(encoding="utf-8"))
     try:
         hist = yf.Ticker("^VIX").history(period="7d")
     except Exception:
@@ -43,7 +43,7 @@ def fetch_vix(today: date | None = None) -> dict:
         "vix_7d_change_pct": round((current / prev - 1) * 100, 2),
         "interpretation": _interpret(current),
     }
-    cache_path.write_text(json.dumps(out))
+    cache_path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return out
 
 
@@ -77,7 +77,7 @@ def fetch_yields(today: date | None = None) -> dict:
     today = today or date.today()
     cache_path = CACHE_DIR / f"yields_{today.isoformat()}.json"
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        return json.loads(cache_path.read_text(encoding="utf-8"))
 
     out: dict = {}
     for key, sym in YIELD_TICKERS.items():
@@ -98,7 +98,7 @@ def fetch_yields(today: date | None = None) -> dict:
         out["curve"] = _interpret_curve(spread_bp)
 
     if out:
-        cache_path.write_text(json.dumps(out))
+        cache_path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return out
 
 
@@ -153,7 +153,7 @@ def fetch_fear_greed(today: date | None = None) -> dict:
     today = today or date.today()
     cache_path = CACHE_DIR / f"fear_greed_{today.isoformat()}.json"
     if cache_path.exists():
-        return json.loads(cache_path.read_text())
+        return json.loads(cache_path.read_text(encoding="utf-8"))
 
     try:
         r = requests.get(_FG_URL, headers=_FG_HEADERS, timeout=10)
@@ -197,7 +197,7 @@ def fetch_fear_greed(today: date | None = None) -> dict:
         "previous_1_month": _round_or_none(fg.get("previous_1_month")),
         "previous_1_year": _round_or_none(fg.get("previous_1_year")),
     }
-    cache_path.write_text(json.dumps(out))
+    cache_path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return out
 
 
@@ -270,7 +270,7 @@ def fetch_breadth(today: date | None = None) -> dict:
     cache_path = CACHE_DIR / f"breadth_{today.isoformat()}.json"
     if cache_path.exists():
         try:
-            cached = json.loads(cache_path.read_text())
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             cached = {}
         if "nasdaq_advances_1d" in cached:
@@ -327,7 +327,7 @@ def fetch_breadth(today: date | None = None) -> dict:
         "ad_spread_5d_pp": round(ndx_pct_5d - dow_pct_5d, 1),
     }
     out["interpretation"] = _interpret_breadth(out["ad_spread_1d_pp"], out["dow_advance_pct_1d"])
-    cache_path.write_text(json.dumps(out))
+    cache_path.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     return out
 
 
