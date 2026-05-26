@@ -174,10 +174,28 @@ def _latest_report() -> str:
     return sorted(reports)[-1].read_text(encoding="utf-8")
 
 
+def _ontology_ticker_map() -> str:
+    """Build a compact segment→tickers map so the model knows which tickers are in the ontology."""
+    o = Ontology.load()
+    seg_tickers: dict[str, list[str]] = {}
+    for d, dom in o.raw["domains"].items():
+        for l, layer in dom.get("layers", {}).items():
+            for s, seg in layer.get("segments", {}).items():
+                names = [f"{c['ticker']}({c.get('name','')})" for c in seg.get("companies", [])]
+                if names:
+                    seg_tickers[s] = names
+    lines = ["# ontology 종목 목록 (이 종목들은 AI 산업 ontology에 포함 — 구조 분석 가능)"]
+    for seg, tickers in sorted(seg_tickers.items()):
+        lines.append(f"- {seg}: {', '.join(tickers)}")
+    return "\n".join(lines)
+
+
 def _build_context() -> str:
     report = _latest_report() or "(아직 생성된 리포트가 없습니다)"
-    thesis = _thesis_block(Ontology.load().thesis_entries())
-    return f"# 최근 리포트\n{report}\n\n{thesis}"
+    ontology = Ontology.load()
+    thesis = _thesis_block(ontology.thesis_entries())
+    ticker_map = _ontology_ticker_map()
+    return f"# 최근 리포트\n{report}\n\n{thesis}\n\n{ticker_map}"
 
 
 def _run_tool(name: str, arguments_json: str) -> str:
