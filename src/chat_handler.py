@@ -7,7 +7,7 @@ from pathlib import Path
 from openai import OpenAI
 
 from src.agents import load_agent_prompt
-from src.chart import generate_segment_trend
+from src.chart import generate_price_chart, generate_segment_trend
 from src.data_fetcher import fetch_financials, fetch_ticker_info
 from src.macro import fetch_breadth, fetch_fear_greed
 from src.main import REPORTS_DIR, _thesis_block
@@ -86,6 +86,30 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "get_price_chart",
+            "description": (
+                "여러 종목/ETF의 가격 추이 비교 차트 생성. 정규화(시작일=100)해서 라인 비교. "
+                "AI 관련 ETF: SOXX(반도체), AIQ(AI 광의), DTCR(데이터센터), QQQ(나스닥100), XLU(전력). "
+                "사용자가 '펀드 주가 흐름', 'ETF 비교', 'NVDA vs AMD 차트', 'AI 펀드 추이' 등 물을 때 호출. "
+                "여러 종목을 한 차트에 정규화해서 비교 가능."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tickers": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "비교할 종목/ETF 티커 리스트. 예: ['SOXX', 'AIQ', 'QQQ'] 또는 ['NVDA', 'AMD', 'INTC']",
+                    },
+                    "days": {"type": "integer", "description": "최근 N일 (기본 30)"},
+                },
+                "required": ["tickers"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_segment_trend",
             "description": (
                 "세그먼트별 일별 등락률 트렌드 차트 생성 (양자컴퓨팅, 광모듈, GPU 가속기 등). "
@@ -116,6 +140,13 @@ TOOLS = [
     },
 ]
 
+def _chart_price_comparison(tickers: list[str], days: int = 30) -> dict:
+    path = generate_price_chart(tickers, days)
+    if path:
+        return {"chart_path": str(path), "summary": f"{', '.join(tickers)} 가격 비교 차트 ({days}일)를 생성했습니다."}
+    return {"error": "가격 데이터를 가져올 수 없습니다. 티커를 확인해 주세요."}
+
+
 def _chart_segment_trend(days: int = 14) -> dict:
     """Generate segment trend chart image. Returns {"chart_path": ..., "summary": ...} or {"error": ...}."""
     path = generate_segment_trend(days=days)
@@ -129,6 +160,7 @@ _TOOL_HANDLERS = {
     "get_financials": fetch_financials,
     "get_fear_greed": fetch_fear_greed,
     "get_market_breadth": fetch_breadth,
+    "get_price_chart": _chart_price_comparison,
     "get_segment_trend": _chart_segment_trend,
 }
 

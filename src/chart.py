@@ -1,4 +1,4 @@
-"""Generate chart images for Telegram — segment trends, etc."""
+"""Generate chart images for Telegram — segment trends, price comparison, etc."""
 
 import platform
 
@@ -12,7 +12,6 @@ from pathlib import Path
 
 from src.segment_history import load_recent
 
-# Korean font: NanumGothic on Linux (apt install fonts-nanum), Malgun Gothic on Windows
 _KR_FONT = "NanumGothic" if platform.system() != "Windows" else "Malgun Gothic"
 if any(_KR_FONT == f.name for f in fm.fontManager.ttflist):
     plt.rcParams["font.family"] = _KR_FONT
@@ -42,9 +41,53 @@ SEGMENT_KR = {
 }
 
 
+def generate_price_chart(tickers: list[str], days: int = 30) -> Path | None:
+    """Normalized price comparison chart (start=100) for multiple tickers."""
+    import yfinance as yf
+    if not tickers:
+        return None
+    try:
+        hist = yf.download(" ".join(tickers), period=f"{days + 5}d",
+                           group_by="ticker", auto_adjust=False, progress=False, threads=True)
+    except Exception:
+        return None
+    if hist is None or hist.empty:
+        return None
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    plotted = 0
+    for t in tickers:
+        try:
+            close = hist[t]["Close"].dropna() if len(tickers) > 1 else hist["Close"].dropna()
+        except (KeyError, AttributeError):
+            continue
+        if len(close) < 2:
+            continue
+        normalized = close / close.iloc[0] * 100
+        ax.plot(normalized.index, normalized.values, marker="", linewidth=1.8, label=t)
+        plotted += 1
+
+    if plotted == 0:
+        plt.close(fig)
+        return None
+
+    ax.axhline(y=100, color="gray", linestyle="--", linewidth=0.5)
+    ax.set_ylabel("정규화 가격 (시작일=100)")
+    ax.set_title(f"가격 추이 비교 (최근 {days}일)")
+    ax.legend(loc="best", fontsize=9)
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%m/%d"))
+    ax.grid(axis="y", alpha=0.3)
+    fig.autofmt_xdate()
+    fig.tight_layout()
+
+    path = CHART_DIR / "price_comparison.png"
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
+    return path
+
+
 def generate_segment_trend(days: int = 14, top_n: int = 8) -> Path | None:
-    """Line chart of segment daily change_pct. Returns image path or None if no data.
-    Shows top_n most volatile segments to keep the chart readable."""
+    """Line chart of segment daily change_pct over last N days."""
     data = load_recent(days)
     if len(data) < 2:
         return None

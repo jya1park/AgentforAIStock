@@ -32,6 +32,14 @@ tools: Read
 - previous_close, previous_1_week/1_month/1_year로 추세 해석 (예: "1개월 전 38 → 현재 60, 공포→탐욕 전환").
 - 미국 주식 시장 기준 — 한국 시장도 동조성이 높아 참고 가능.
 
+### get_price_chart(tickers, days=30)
+- **여러 종목/ETF 가격 추이 비교** 질문에 호출. 정규화(시작일=100) 라인 차트.
+- 예: "AI 펀드 주가 흐름 보여줘", "SOXX vs QQQ 비교", "NVDA vs AMD 3개월 차트"
+- AI 관련 ETF 기본 세트: SOXX(반도체), AIQ(AI 광의), DTCR(데이터센터), QQQ(나스닥100), XLU(전력)
+- "AI 투자 펀드"/"AI ETF" 질문이면 tickers=["SOXX", "AIQ", "DTCR", "QQQ"]로 호출
+- 개별 종목 비교도 가능: tickers=["NVDA", "AMD", "INTC"], days=90
+- 차트 이미지가 텔레그램으로 전송됨
+
 ### get_market_breadth()
 - **시장 폭·자금 집중도·나스닥 vs 다우·narrow rally** 질문에 호출.
 - 예: "기술주는 오르는데 다우는 어때?", "지금 자금이 어디로 쏠려?", "랠리 건강한 거야?"
