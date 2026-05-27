@@ -88,16 +88,16 @@ domains:
               - { ticker: "010120.KS", name: "LS ELECTRIC", market: KR, role: "전력기기" }
       ai_dc_operator:
         description: "AI 데이터센터를 직접 소유·운영하는 사업자"
-        thesis: "2026 합산 capex ~$700B, 75%가 AI 관련 — 전력/HBM/광부품 수요의 1차 추진체"
+        thesis: "AI 데이터센터 capex 확산 — 전력/HBM/광부품 수요의 1차 추진체"
         segments:
           hyperscaler_dc:
             description: "자체 DC 운영 빅테크 (software.foundation_model_cloud.hyperscaler 와 cross-tag)"
             companies:
-              - { ticker: MSFT,  name: "Microsoft", market: US, role: "Azure DC, 2026 capex $190B" }
-              - { ticker: GOOGL, name: "Alphabet",  market: US, role: "Google Cloud DC + TPU, 2026 capex $190B" }
-              - { ticker: AMZN,  name: "Amazon",    market: US, role: "AWS DC, 2026 capex $200B" }
-              - { ticker: META,  name: "Meta",      market: US, role: "자체 LLM 학습 DC, 2026 capex $125–145B" }
-              - { ticker: ORCL,  name: "Oracle",    market: US, role: "OCI + OpenAI Stargate, 2026 capex $50B (+136% YoY)" }
+              - { ticker: MSFT,  name: "Microsoft", market: US, role: "Azure DC" }
+              - { ticker: GOOGL, name: "Alphabet",  market: US, role: "Google Cloud DC + TPU" }
+              - { ticker: AMZN,  name: "Amazon",    market: US, role: "AWS DC" }
+              - { ticker: META,  name: "Meta",      market: US, role: "자체 LLM 학습 DC" }
+              - { ticker: ORCL,  name: "Oracle",    market: US, role: "OCI + OpenAI Stargate" }
           ai_native_cloud:
             description: "GPU-as-a-Service 전문 neocloud — NVIDIA 직접 파트너"
             companies:

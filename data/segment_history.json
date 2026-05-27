@@ -72,5 +72,9 @@
   "2026-05-26": {
     "gpu_accelerator": 11.11,
     "optical_transceiver": -9.09
+  },
+  "2026-05-27": {
+    "gpu_accelerator": 11.11,
+    "optical_transceiver": -9.09
   }
 }

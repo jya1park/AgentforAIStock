@@ -84,7 +84,7 @@ tools: Read, Bash, WebSearch
   - [IONQ/RGTI 등] vs [NVDA 등] 수치 대비 → 자금 이동/동조 결론
 ③ 4중 macro verdict (한 줄)
   VIX [수치 구간] + F&G [수치 구간 (1개월 추세)] + 곡선 [bp] + 시장 폭 [A/D 스프레드] → {정렬/충돌/혼재} {단정 라벨}
-- **도메인 thesis 인용 (path 이름이 아니라 본문 키워드)**: thesis 본문의 구체 키워드("capex $700B", "전력·HBM·광부품 후행 확산", "역상관 자금 이동" 등)를 그대로 인용. 단순히 `hardware.ai_dc_operator` 같은 path만 호명하면 시그널 약함으로 처리.
+- **도메인 thesis 인용 (path 이름이 아니라 본문 키워드)**: thesis 본문의 구체 키워드("capex 확산", "전력·HBM·광부품 후행 확산", "역상관 자금 이동" 등)를 그대로 인용. 단순히 `hardware.ai_dc_operator` 같은 path만 호명하면 시그널 약함으로 처리.
 - **의무 cross-check 3개** (해당 신호가 입력에 보이면 반드시 명시):
   (1) `ai_dc_operator` (MSFT/GOOGL/AMZN/META) 강세 vs **광부품**(AAOI/POET/LITE 등)·**전력**(GEV/VRT/XLU)·**HBM**(005930.KS/000660.KS/MU) 동조 여부 — 불일치 시 "capex 사이클은 진행 중이나 후행 확산은 지연" 명시.
   (2) `emerging_compute` 종목(IONQ/RGTI/QBTS 등) 강세 vs `hardware.semiconductor_compute`/`semiconductor_memory` 동조 여부 — 역상관 시 "자금 이동 시그널", 동조 시 "전체 시장 강세, 자금 이동 아님" 명시.
